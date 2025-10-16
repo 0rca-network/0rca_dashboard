@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card } from './ui/card'
-import { Mic, MicOff, Volume2, VolumeX, Send, Code, Plus, X } from 'lucide-react'
+import { Mic, MicOff, Volume2, VolumeX, Send, Code, Plus, X, MessageSquare, ChevronLeft, ChevronRight, Search, Settings, User, CreditCard, LogOut, Edit } from 'lucide-react'
 
 interface Message {
   id: string
@@ -45,6 +45,11 @@ export function StandaloneAIAssistant({
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [recognition, setRecognition] = useState<any>(null)
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showSettings, setShowSettings] = useState(false)
+  const [userName, setUserName] = useState('User')
+  const [isEditingName, setIsEditingName] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
@@ -94,6 +99,25 @@ export function StandaloneAIAssistant({
         setMessages(sessions[0].messages)
       }
     }
+    
+    const storedName = localStorage.getItem(`user_name_${userId}`)
+    if (storedName) {
+      setUserName(storedName)
+    }
+  }
+
+  const filteredSessions = chatSessions.filter(session => 
+    session.title.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const saveUserName = (name: string) => {
+    if (!userId) return
+    localStorage.setItem(`user_name_${userId}`, name)
+    setUserName(name)
+  }
+
+  const handleLogout = () => {
+    console.log('Logout clicked')
   }
 
   const saveChatHistory = (sessions: ChatSession[]) => {
@@ -334,45 +358,243 @@ export function StandaloneAIAssistant({
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-cyan-800 to-blue-800 flex">
       
-      {/* Chat History Sidebar - Always visible */}
-      <div className="w-80 backdrop-blur-lg bg-white/10 border-r border-white/20 shadow-2xl">
-        <div className="p-4">
+      {/* Chat History Sidebar */}
+      <div className={`${isCollapsed ? 'w-16' : 'w-80'} backdrop-blur-lg bg-white/10 border-r border-white/20 shadow-2xl transition-all duration-300 relative`}>
+        <div className="p-4 flex flex-col h-full">
+          {/* Header */}
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white font-semibold">Chat History</h3>
+            {!isCollapsed && <h3 className="text-white font-semibold">Chat History</h3>}
             <Button
-              onClick={createNewSession}
+              onClick={() => setIsCollapsed(!isCollapsed)}
               size="sm"
-              className="bg-cyan-600 hover:bg-cyan-700"
+              variant="ghost"
+              className="text-white hover:bg-white/20"
             >
-              <Plus className="h-4 w-4" />
+              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             </Button>
           </div>
-          <div className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
-            {chatSessions.map((session) => (
-              <div
-                key={session.id}
-                onClick={() => loadSession(session.id)}
-                className={`p-3 rounded-lg cursor-pointer transition-colors group relative ${
-                  currentSessionId === session.id 
-                    ? 'bg-cyan-600/50' 
-                    : 'bg-white/10 hover:bg-white/20'
-                }`}
-              >
-                <p className="text-white text-sm font-medium truncate pr-6">{session.title}</p>
-                <p className="text-white/70 text-xs">{session.created_at.toLocaleDateString()}</p>
-                <Button
-                  onClick={(e) => deleteSession(session.id, e)}
-                  size="sm"
-                  variant="ghost"
-                  className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 text-white/70 hover:text-red-400"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col">
+            {/* Collapsed View */}
+            {isCollapsed ? (
+              <div className="flex flex-col h-full">
+                <div className="space-y-4">
+                  <Button
+                    onClick={createNewSession}
+                    size="sm"
+                    variant="ghost"
+                    className="w-full text-white hover:bg-cyan-600/50"
+                    title="New Chat"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex-1"></div>
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => setShowSettings(!showSettings)}
+                    size="sm"
+                    variant="ghost"
+                    className="w-full text-white hover:bg-white/20"
+                    title="Settings"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                  {showDeveloperButton && onDeveloperMode && (
+                    <Button
+                      onClick={onDeveloperMode}
+                      size="sm"
+                      variant="ghost"
+                      className="w-full text-white hover:bg-blue-600/50"
+                      title="Developer Dashboard"
+                    >
+                      <Code className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
-            ))}
+            ) : (
+              <>
+                {/* Search */}
+                <div className="mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50 h-4 w-4" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search chats..."
+                      className="pl-10 bg-white/10 border-white/20 text-white placeholder-white/50"
+                    />
+                  </div>
+                </div>
+
+                {/* New Chat Button */}
+                <Button
+                  onClick={createNewSession}
+                  className="w-full mb-4 bg-cyan-600 hover:bg-cyan-700"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  New Chat
+                </Button>
+
+                {/* Chat Sessions */}
+                <div className="space-y-2 flex-1 overflow-y-auto mb-4">
+                  {filteredSessions.map((session) => (
+                    <div
+                      key={session.id}
+                      onClick={() => loadSession(session.id)}
+                      className={`p-3 rounded-lg cursor-pointer transition-colors group relative ${
+                        currentSessionId === session.id 
+                          ? 'bg-cyan-600/50' 
+                          : 'bg-white/10 hover:bg-white/20'
+                      }`}
+                    >
+                      <p className="text-white text-sm font-medium truncate pr-6">{session.title}</p>
+                      <p className="text-white/70 text-xs">{session.created_at.toLocaleDateString()}</p>
+                      <Button
+                        onClick={(e) => deleteSession(session.id, e)}
+                        size="sm"
+                        variant="ghost"
+                        className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 text-white/70 hover:text-red-400"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bottom Buttons */}
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => setShowSettings(!showSettings)}
+                    className="w-full bg-gray-600 hover:bg-gray-700"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </Button>
+                  {showDeveloperButton && onDeveloperMode && (
+                    <Button
+                      onClick={onDeveloperMode}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Code className="h-4 w-4 mr-2" />
+                      Developer Dashboard
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
+
       </div>
+
+      {/* Settings Panel */}
+      {showSettings && (
+        <div className="w-80 backdrop-blur-lg bg-white/10 border-r border-white/20 shadow-2xl">
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-white font-semibold">Settings</h3>
+              <Button
+                onClick={() => setShowSettings(false)}
+                size="sm"
+                variant="ghost"
+                className="text-white hover:bg-white/20"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* User Profile */}
+            <div className="mb-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-cyan-600 rounded-full flex items-center justify-center">
+                  <User className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  {isEditingName ? (
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                        className="bg-white/10 border-white/20 text-white text-sm"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            saveUserName(userName)
+                            setIsEditingName(false)
+                          }
+                        }}
+                      />
+                      <Button
+                        onClick={() => {
+                          saveUserName(userName)
+                          setIsEditingName(false)
+                        }}
+                        size="sm"
+                        className="bg-cyan-600 hover:bg-cyan-700"
+                      >
+                        Save
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <p className="text-white font-medium">{userName}</p>
+                      <Button
+                        onClick={() => setIsEditingName(true)}
+                        size="sm"
+                        variant="ghost"
+                        className="text-white/70 hover:text-white hover:bg-white/20 p-1"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                  <p className="text-white/70 text-xs">Free Plan</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Settings Options */}
+            <div className="space-y-2">
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-white hover:bg-white/20"
+              >
+                <User className="h-4 w-4 mr-3" />
+                User Details
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-white hover:bg-white/20"
+              >
+                <CreditCard className="h-4 w-4 mr-3" />
+                Plan Upgrade
+              </Button>
+              {showDeveloperButton && onDeveloperMode && (
+                <Button
+                  onClick={onDeveloperMode}
+                  variant="ghost"
+                  className="w-full justify-start text-white hover:bg-blue-600/20"
+                >
+                  <Code className="h-4 w-4 mr-3" />
+                  Developer Dashboard
+                </Button>
+              )}
+              <Button
+                onClick={handleLogout}
+                variant="ghost"
+                className="w-full justify-start text-red-400 hover:bg-red-500/20"
+              >
+                <LogOut className="h-4 w-4 mr-3" />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
 
       {/* Main Chat Interface */}
       <div className="flex-1 flex items-center justify-center p-4">
@@ -469,19 +691,7 @@ export function StandaloneAIAssistant({
         </div>
       </div>
 
-      {/* Developer Button - Bottom Left */}
-      {showDeveloperButton && onDeveloperMode && (
-        <div className="fixed bottom-6 left-6">
-          <Button
-            onClick={onDeveloperMode}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
-            size="sm"
-          >
-            <Code className="h-4 w-4 mr-2" />
-            Developer Dashboard
-          </Button>
-        </div>
-      )}
+
     </div>
   )
 }
