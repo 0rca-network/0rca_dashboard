@@ -45,7 +45,7 @@ export function StandaloneAIAssistant({
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [recognition, setRecognition] = useState<any>(null)
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [userName, setUserName] = useState('User')
@@ -116,8 +116,17 @@ export function StandaloneAIAssistant({
     setUserName(name)
   }
 
-  const handleLogout = () => {
-    console.log('Logout clicked')
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut()
+    if (!error) {
+      // Clear local storage
+      if (userId) {
+        localStorage.removeItem(`chat_sessions_${userId}`)
+        localStorage.removeItem(`user_name_${userId}`)
+      }
+      // Reload page to reset state
+      window.location.reload()
+    }
   }
 
   const saveChatHistory = (sessions: ChatSession[]) => {
