@@ -50,6 +50,10 @@ export function StandaloneAIAssistant({
   const [showSettings, setShowSettings] = useState(false)
   const [userName, setUserName] = useState('User')
   const [isEditingName, setIsEditingName] = useState(false)
+  const [userEmail, setUserEmail] = useState('')
+  const [authProvider, setAuthProvider] = useState('')
+  const [showSettingsPopup, setShowSettingsPopup] = useState(false)
+  const settingsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
@@ -77,6 +81,7 @@ export function StandaloneAIAssistant({
   useEffect(() => {
     if (userId) {
       loadChatHistory()
+      loadUserData()
     }
   }, [userId])
 
@@ -106,6 +111,31 @@ export function StandaloneAIAssistant({
     }
   }
 
+  const loadUserData = async () => {
+    if (!userId) return
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      setUserEmail(user.email || '')
+      
+      // Determine auth provider
+      if (user.app_metadata?.provider) {
+        setAuthProvider(user.app_metadata.provider)
+      } else if (user.user_metadata?.provider) {
+        setAuthProvider(user.user_metadata.provider)
+      } else {
+        setAuthProvider('email')
+      }
+      
+      // Set display name from provider data
+      if (user.user_metadata?.full_name && !localStorage.getItem(`user_name_${userId}`)) {
+        setUserName(user.user_metadata.full_name)
+      } else if (user.user_metadata?.name && !localStorage.getItem(`user_name_${userId}`)) {
+        setUserName(user.user_metadata.name)
+      }
+    }
+  }
+
   const filteredSessions = chatSessions.filter(session => 
     session.title.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -114,6 +144,19 @@ export function StandaloneAIAssistant({
     if (!userId) return
     localStorage.setItem(`user_name_${userId}`, name)
     setUserName(name)
+  }
+
+  const handleSettingsHover = () => {
+    if (settingsTimeoutRef.current) {
+      clearTimeout(settingsTimeoutRef.current)
+    }
+    setShowSettingsPopup(true)
+  }
+
+  const handleSettingsLeave = () => {
+    settingsTimeoutRef.current = setTimeout(() => {
+      setShowSettingsPopup(false)
+    }, 100)
   }
 
   const handleLogout = async () => {
@@ -365,6 +408,99 @@ export function StandaloneAIAssistant({
   }
 
   return (
+    <>
+      {/* Settings Popup Portal */}
+      {showSettingsPopup && (
+        <div className={`fixed ${isCollapsed ? 'left-20 bottom-16' : 'left-80 bottom-16'} w-80 z-[99999]`}>
+          <div 
+            className="backdrop-blur-lg bg-white/10 border border-white/20 rounded-lg shadow-2xl"
+            onMouseEnter={handleSettingsHover}
+            onMouseLeave={handleSettingsLeave}
+          >
+            <div className="p-4">
+              <h3 className="text-white font-semibold mb-4">User Settings</h3>
+              
+              <div className="mb-4">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="w-10 h-10 bg-cyan-600 rounded-full flex items-center justify-center">
+                    <User className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    {isEditingName ? (
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          value={userName}
+                          onChange={(e) => setUserName(e.target.value)}
+                          className="bg-white/10 border-white/20 text-white text-sm h-8"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              saveUserName(userName)
+                              setIsEditingName(false)
+                            }
+                          }}
+                        />
+                        <Button
+                          onClick={() => {
+                            saveUserName(userName)
+                            setIsEditingName(false)
+                          }}
+                          size="sm"
+                          className="bg-cyan-600 hover:bg-cyan-700 h-8 px-2"
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <p className="text-white font-medium text-sm">{userName}</p>
+                        <Button
+                          onClick={() => setIsEditingName(true)}
+                          size="sm"
+                          variant="ghost"
+                          className="text-white/70 hover:text-white hover:bg-white/20 p-1 h-6 w-6"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                    <p className="text-white/70 text-xs">Free Plan • {authProvider === 'email' ? 'Email' : authProvider.charAt(0).toUpperCase() + authProvider.slice(1)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Button
+                  onClick={() => {
+                    setShowSettingsPopup(false)
+                    alert(`Email: ${userEmail}\nProvider: ${authProvider === 'email' ? 'Email/Password' : authProvider.charAt(0).toUpperCase() + authProvider.slice(1)}`)
+                  }}
+                  variant="ghost"
+                  className="w-full justify-start text-white hover:bg-white/20 h-8 text-sm"
+                >
+                  <User className="h-3 w-3 mr-2" />
+                  User Details
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-white hover:bg-white/20 h-8 text-sm"
+                >
+                  <CreditCard className="h-3 w-3 mr-2" />
+                  Plan Upgrade
+                </Button>
+                <Button
+                  onClick={handleLogout}
+                  variant="ghost"
+                  className="w-full justify-start text-red-400 hover:bg-red-500/20 h-8 text-sm"
+                >
+                  <LogOut className="h-3 w-3 mr-2" />
+                  Logout
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-cyan-800 to-blue-800 flex">
       
       {/* Chat History Sidebar */}
@@ -402,7 +538,8 @@ export function StandaloneAIAssistant({
                 <div className="flex-1"></div>
                 <div className="space-y-2">
                   <Button
-                    onClick={() => setShowSettings(!showSettings)}
+                    onMouseEnter={handleSettingsHover}
+                    onMouseLeave={handleSettingsLeave}
                     size="sm"
                     variant="ghost"
                     className="w-full text-white hover:bg-white/20"
@@ -476,7 +613,8 @@ export function StandaloneAIAssistant({
                 {/* Bottom Buttons */}
                 <div className="space-y-2">
                   <Button
-                    onClick={() => setShowSettings(!showSettings)}
+                    onMouseEnter={handleSettingsHover}
+                    onMouseLeave={handleSettingsLeave}
                     className="w-full bg-gray-600 hover:bg-gray-700"
                   >
                     <Settings className="h-4 w-4 mr-2" />
@@ -702,5 +840,6 @@ export function StandaloneAIAssistant({
 
 
     </div>
+    </>
   )
 }
