@@ -80,12 +80,69 @@ export function StandaloneAIAssistant({
 
   useEffect(() => {
     if (userId) {
-      loadChatHistory()
+      loadChatHistoryFromDB()
       loadUserData()
     }
   }, [userId])
 
-  const loadChatHistory = async () => {
+  const loadChatHistoryFromDB = async () => {
+    if (!userId) return
+    
+    try {
+      // Load chat sessions from database
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('chat_sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (sessionsError) throw sessionsError
+
+      if (sessions && sessions.length > 0) {
+        // Load messages for each session
+        const sessionsWithMessages = await Promise.all(
+          sessions.map(async (session) => {
+            const { data: messages, error: messagesError } = await supabase
+              .from('chat_messages')
+              .select('*')
+              .eq('session_id', session.id)
+              .order('created_at', { ascending: true })
+
+            if (messagesError) throw messagesError
+
+            return {
+              id: session.id,
+              title: session.title,
+              created_at: new Date(session.created_at),
+              messages: messages?.map(msg => ({
+                id: msg.id,
+                text: msg.content,
+                isUser: msg.is_user,
+                timestamp: new Date(msg.created_at)
+              })) || []
+            }
+          })
+        )
+
+        setChatSessions(sessionsWithMessages)
+        if (sessionsWithMessages.length > 0) {
+          setCurrentSessionId(sessionsWithMessages[0].id)
+          setMessages(sessionsWithMessages[0].messages)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading chat history:', error)
+      // Fallback to localStorage if database fails
+      loadChatHistoryFromLocalStorage()
+    }
+    
+    const storedName = localStorage.getItem(`user_name_${userId}`)
+    if (storedName) {
+      setUserName(storedName)
+    }
+  }
+
+  const loadChatHistoryFromLocalStorage = () => {
     if (!userId) return
     
     const stored = localStorage.getItem(`chat_sessions_${userId}`)
@@ -103,11 +160,6 @@ export function StandaloneAIAssistant({
         setCurrentSessionId(sessions[0].id)
         setMessages(sessions[0].messages)
       }
-    }
-    
-    const storedName = localStorage.getItem(`user_name_${userId}`)
-    if (storedName) {
-      setUserName(storedName)
     }
   }
 
@@ -172,23 +224,73 @@ export function StandaloneAIAssistant({
     }
   }
 
-  const saveChatHistory = (sessions: ChatSession[]) => {
+  const saveChatHistoryToDB = async (session: ChatSession) => {
+    if (!userId) return
+    
+    try {
+      // Save or update session
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('chat_sessions')
+        .upsert({
+          id: session.id,
+          user_id: userId,
+          title: session.title,
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (sessionError) throw sessionError
+
+      // Delete existing messages for this session
+      await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('session_id', session.id)
+
+      // Save new messages
+      if (session.messages.length > 0) {
+        const messagesToInsert = session.messages.map(msg => ({
+          session_id: session.id,
+          content: msg.text,
+          is_user: msg.isUser,
+          created_at: msg.timestamp.toISOString()
+        }))
+
+        const { error: messagesError } = await supabase
+          .from('chat_messages')
+          .insert(messagesToInsert)
+
+        if (messagesError) throw messagesError
+      }
+    } catch (error) {
+      console.error('Error saving chat history to DB:', error)
+      // Fallback to localStorage
+      saveChatHistoryToLocalStorage([session])
+    }
+  }
+
+  const saveChatHistoryToLocalStorage = (sessions: ChatSession[]) => {
     if (!userId) return
     localStorage.setItem(`chat_sessions_${userId}`, JSON.stringify(sessions))
   }
 
-  const createNewSession = () => {
+  const createNewSession = async () => {
     const newSession: ChatSession = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       title: 'New Chat',
       messages: [],
       created_at: new Date()
     }
+    
+    // Save to database first
+    await saveChatHistoryToDB(newSession)
+    
+    // Then update local state
     const updatedSessions = [newSession, ...chatSessions]
     setChatSessions(updatedSessions)
     setCurrentSessionId(newSession.id)
     setMessages([])
-    saveChatHistory(updatedSessions)
   }
 
   const loadSession = (sessionId: string) => {
@@ -199,7 +301,7 @@ export function StandaloneAIAssistant({
     }
   }
 
-  const updateCurrentSession = (newMessages: Message[]) => {
+  const updateCurrentSession = async (newMessages: Message[]) => {
     if (!currentSessionId) return
     
     const updatedSessions = chatSessions.map(session => {
@@ -212,23 +314,40 @@ export function StandaloneAIAssistant({
       return session
     })
     setChatSessions(updatedSessions)
-    saveChatHistory(updatedSessions)
+    
+    const currentSession = updatedSessions.find(s => s.id === currentSessionId)
+    if (currentSession) {
+      await saveChatHistoryToDB(currentSession)
+    }
   }
 
-  const deleteSession = (sessionId: string, e: React.MouseEvent) => {
+  const deleteSession = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    const updatedSessions = chatSessions.filter(s => s.id !== sessionId)
-    setChatSessions(updatedSessions)
-    saveChatHistory(updatedSessions)
     
-    if (currentSessionId === sessionId) {
-      if (updatedSessions.length > 0) {
-        setCurrentSessionId(updatedSessions[0].id)
-        setMessages(updatedSessions[0].messages)
-      } else {
-        setCurrentSessionId(null)
-        setMessages([])
+    try {
+      // Delete from database
+      const { error } = await supabase
+        .from('chat_sessions')
+        .delete()
+        .eq('id', sessionId)
+
+      if (error) throw error
+
+      // Update local state
+      const updatedSessions = chatSessions.filter(s => s.id !== sessionId)
+      setChatSessions(updatedSessions)
+      
+      if (currentSessionId === sessionId) {
+        if (updatedSessions.length > 0) {
+          setCurrentSessionId(updatedSessions[0].id)
+          setMessages(updatedSessions[0].messages)
+        } else {
+          setCurrentSessionId(null)
+          setMessages([])
+        }
       }
+    } catch (error) {
+      console.error('Error deleting session:', error)
     }
   }
 
@@ -347,15 +466,17 @@ export function StandaloneAIAssistant({
     return `I understand you're asking about "${userMessage}". As your Orca Network AI assistant, I can help with: • Agent creation & management • Orchestrator usage • Wallet & billing • Earnings tracking • Marketplace discovery • Analytics • Settings • Troubleshooting. Could you be more specific about what you'd like to know?`
   }
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputValue.trim()) return
 
-    if (!currentSessionId) {
-      createNewSession()
+    let sessionId = currentSessionId
+    if (!sessionId) {
+      await createNewSession()
+      sessionId = chatSessions[0]?.id || currentSessionId
     }
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       text: inputValue,
       isUser: true,
       timestamp: new Date()
@@ -364,16 +485,16 @@ export function StandaloneAIAssistant({
     const newMessages = [...messages, userMessage]
     setMessages(newMessages)
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
+        id: crypto.randomUUID(),
         text: generateAIResponse(inputValue),
         isUser: false,
         timestamp: new Date()
       }
       const finalMessages = [...newMessages, aiResponse]
       setMessages(finalMessages)
-      updateCurrentSession(finalMessages)
+      await updateCurrentSession(finalMessages)
       
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(aiResponse.text)

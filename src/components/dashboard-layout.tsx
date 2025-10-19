@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
+import { GuidedTour } from '@/components/GuidedTour'
 import { 
   Home, 
   Bot, 
@@ -38,6 +39,8 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [darkMode, setDarkMode] = useState(false)
+  const [showTour, setShowTour] = useState(false)
+  const [isNewUser, setIsNewUser] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const { toast } = useToast()
@@ -71,13 +74,38 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           .single()
         
         setProfile(newProfile)
+        setIsNewUser(true)
       } else {
         setProfile(profileData)
+        // Check if user has seen the tour
+        const hasSeenTour = localStorage.getItem(`tour_completed_${user.id}`)
+        if (!hasSeenTour) {
+          setIsNewUser(true)
+        }
       }
     }
 
     getProfile()
   }, [router, supabase])
+
+  // Start tour for new users after profile loads
+  useEffect(() => {
+    if (isNewUser && profile && pathname === '/dashboard') {
+      const timer = setTimeout(() => {
+        setShowTour(true)
+      }, 1000) // Small delay to let the page load
+      
+      return () => clearTimeout(timer)
+    }
+  }, [isNewUser, profile, pathname])
+
+  const handleTourComplete = () => {
+    setShowTour(false)
+    setIsNewUser(false)
+    if (profile) {
+      localStorage.setItem(`tour_completed_${profile.id}`, 'true')
+    }
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -91,17 +119,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const creatorNavItems = [
     { href: '/dashboard', icon: Home, label: 'Overview' },
-    { href: '/creator/agents', icon: Bot, label: 'My Agents' },
-    { href: '/creator/earnings', icon: DollarSign, label: 'Earnings' },
-    { href: '/creator/analytics', icon: BarChart3, label: 'Analytics' },
+    { href: '/creator/agents', icon: Bot, label: 'My Agents', tourId: 'my-agents' },
+    { href: '/creator/earnings', icon: DollarSign, label: 'Earnings', tourId: 'earnings' },
+    { href: '/creator/analytics', icon: BarChart3, label: 'Analytics', tourId: 'analytics' },
   ]
 
   const userNavItems = [
     { href: '/dashboard', icon: Home, label: 'Overview' },
-    { href: '/user/orchestrator', icon: Play, label: 'Orchestrator' },
-    { href: '/user/history', icon: History, label: 'History' },
-    { href: '/user/agents', icon: Search, label: 'Discover' },
-    { href: '/user/wallet', icon: Wallet, label: 'Wallet' },
+    { href: '/user/orchestrator', icon: Play, label: 'Orchestrator', tourId: 'orchestrator' },
+    { href: '/user/history', icon: History, label: 'History', tourId: 'history' },
+    { href: '/user/agents', icon: Search, label: 'Discover', tourId: 'discovery' },
+    { href: '/user/wallet', icon: Wallet, label: 'Wallet', tourId: 'wallet' },
   ]
 
   const commonNavItems = [
@@ -131,6 +159,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Button
                   variant={pathname === item.href ? "default" : "ghost"}
                   className="w-full justify-start"
+                  data-tour={item.tourId}
                 >
                   <item.icon className="mr-2 h-4 w-4" />
                   {item.label}
@@ -193,6 +222,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </div>
       </div>
+      
+      {/* Guided Tour */}
+      {profile && (
+        <GuidedTour
+          isVisible={showTour}
+          onComplete={handleTourComplete}
+          userRole={profile.role}
+        />
+      )}
     </div>
   )
 }

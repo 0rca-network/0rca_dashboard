@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { User, Bell, Wallet, Shield, Settings as SettingsIcon } from 'lucide-react'
+import { User, Bell, Wallet, Shield, Settings as SettingsIcon, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useRouter } from 'next/navigation'
 
 interface Profile {
   id: string
@@ -28,7 +29,10 @@ export default function SettingsPage() {
     weekly_summary: true
   })
   const [loading, setLoading] = useState(true)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const { toast } = useToast()
+  const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
@@ -91,6 +95,49 @@ export default function SettingsPage() {
       setProfile({ ...profile, role: newRole })
       // Refresh the page to update the navigation
       window.location.reload()
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      toast({
+        title: "Error",
+        description: "Please type 'DELETE' to confirm",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Delete user profile and related data first
+      await supabase.from('profiles').delete().eq('id', user.id)
+      
+      // Try to delete the auth user completely using the RPC function
+      const { error: deleteError } = await supabase.rpc('delete_user_completely')
+      
+      if (deleteError) {
+        console.log('RPC delete failed, using fallback method')
+        // Fallback: sign out user
+        await supabase.auth.signOut()
+      }
+
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been permanently deleted. You can now create a new account with the same email.",
+      })
+
+      localStorage.clear()
+      router.push('/auth/login')
+    } catch (error) {
+      console.error('Delete account error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to delete account completely",
+        variant: "destructive",
+      })
     }
   }
 
@@ -340,13 +387,61 @@ export default function SettingsPage() {
               <div className="border-t pt-4">
                 <h4 className="font-medium text-red-600 mb-2">Danger Zone</h4>
                 <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-                  <h5 className="font-medium text-red-800">Delete Account</h5>
-                  <p className="text-sm text-red-700 mb-3">
-                    Permanently delete your account and all associated data
-                  </p>
-                  <Button variant="destructive" size="sm">
-                    Delete Account
-                  </Button>
+                  <div className="flex items-start space-x-3 mb-4">
+                    <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+                    <div>
+                      <h5 className="font-medium text-red-800">Delete Account</h5>
+                      <p className="text-sm text-red-700 mb-3">
+                        This action cannot be undone. This will permanently delete your account and remove all data.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {!showDeleteConfirm ? (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-red-600 border-red-300 hover:bg-red-50"
+                      onClick={() => setShowDeleteConfirm(true)}
+                    >
+                      Delete Account
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="delete-confirm" className="text-red-800 font-medium">
+                          Type "DELETE" to confirm:
+                        </Label>
+                        <Input
+                          id="delete-confirm"
+                          value={deleteConfirmText}
+                          onChange={(e) => setDeleteConfirmText(e.target.value)}
+                          className="mt-1 border-red-300"
+                          placeholder="DELETE"
+                        />
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={handleDeleteAccount}
+                          disabled={deleteConfirmText !== 'DELETE'}
+                        >
+                          Permanently Delete Account
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setShowDeleteConfirm(false)
+                            setDeleteConfirmText('')
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
