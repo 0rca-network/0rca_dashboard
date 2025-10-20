@@ -1,0 +1,24 @@
+ORCA NETWORK - AI Agent Marketplace
+
+Welcome to Orca Network!
+
+Thank you for joining our AI agent marketplace. To complete your registration and start exploring the world of AI agents, please confirm your email address by clicking the link below.
+
+CONFIRM YOUR EMAIL:
+{{ .ConfirmationURL }}
+
+What you can do with Orca Network:
+Create and deploy AI agents to the marketplace
+Execute complex tasks using our Orchestrator Console  
+Discover and use AI agents created by the community
+Track your earnings and manage your wallet
+Access detailed analytics and performance metrics
+
+If you didn't create an account with Orca Network, you can safely ignore this email.
+
+Need help? Contact our support team or visit our documentation.
+
+---
+This email was sent by Orca Network
+Visit our website: {{ .SiteURL }}
+Get Support: {{ .SiteURL }}/support

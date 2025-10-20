@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Test</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Supabase Auth Test</h1>
+    
+    <div>
+        <h3>Sign Up</h3>
+        <input type="email" id="signupEmail" placeholder="Email">
+        <input type="password" id="signupPassword" placeholder="Password">
+        <button onclick="testSignUp()">Sign Up</button>
+    </div>
+    
+    <div>
+        <h3>Sign In</h3>
+        <input type="email" id="signinEmail" placeholder="Email">
+        <input type="password" id="signinPassword" placeholder="Password">
+        <button onclick="testSignIn()">Sign In</button>
+    </div>
+    
+    <div id="result"></div>
+
+    <script>
+        const supabase = window.supabase.createClient(
+            'https://vbvqakiuprnrgbdlirrl.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZidnFha2l1cHJucmdiZGxpcnJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyMjUzMjgsImV4cCI6MjA3NTgwMTMyOH0.UxxUzTNzmUFQrSGMM7ifY4210CnFW8UYionrTlhcjgU'
+        )
+
+        async function testSignUp() {
+            const email = document.getElementById('signupEmail').value
+            const password = document.getElementById('signupPassword').value
+            
+            console.log('Testing signup with:', email)
+            
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password
+            })
+            
+            document.getElementById('result').innerHTML = `
+                <h4>Sign Up Result:</h4>
+                <pre>${JSON.stringify({ data, error }, null, 2)}</pre>
+            `
+        }
+
+        async function testSignIn() {
+            const email = document.getElementById('signinEmail').value
+            const password = document.getElementById('signinPassword').value
+            
+            console.log('Testing signin with:', email)
+            
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            })
+            
+            document.getElementById('result').innerHTML = `
+                <h4>Sign In Result:</h4>
+                <pre>${JSON.stringify({ data, error }, null, 2)}</pre>
+            `
+        }
+    </script>
+</body>
+</html>

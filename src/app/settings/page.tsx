@@ -131,11 +131,11 @@ export default function SettingsPage() {
 
       localStorage.clear()
       router.push('/auth/login')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Delete account error:', error)
       toast({
         title: "Error",
-        description: "Failed to delete account completely",
+        description: error?.message || "Failed to delete account completely",
         variant: "destructive",
       })
     }

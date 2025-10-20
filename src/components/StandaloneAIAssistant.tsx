@@ -219,8 +219,10 @@ export function StandaloneAIAssistant({
         localStorage.removeItem(`chat_sessions_${userId}`)
         localStorage.removeItem(`user_name_${userId}`)
       }
-      // Reload page to reset state
-      window.location.reload()
+      // Clear all cache and redirect to login
+      localStorage.clear()
+      sessionStorage.clear()
+      window.location.href = '/auth/login'
     }
   }
 

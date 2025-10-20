@@ -29,19 +29,25 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
 
-    const { error } = await supabase.auth.signInWithPassword({
+    console.log('Attempting login with:', email)
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
+    console.log('Login result:', { data, error })
+
     if (error) {
+      console.error('Login error:', error)
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       })
     } else {
-      router.push('/dashboard')
+      console.log('Login successful, redirecting...')
+      router.push('/assistant')
     }
     setLoading(false)
   }
@@ -67,33 +73,39 @@ export default function LoginPage() {
 
     setLoading(true)
 
+    console.log('Attempting signup with:', email)
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`
+        emailRedirectTo: `${window.location.origin}/auth/confirm`
       }
     })
 
+    console.log('Signup result:', { data, error })
+
     if (error) {
+      console.error('Signup error:', error)
       toast({
         title: "Sign Up Error",
         description: error.message,
         variant: "destructive",
       })
     } else if (data.user) {
+      console.log('Signup successful:', data.user)
       if (data.user.email_confirmed_at) {
-        // Email already confirmed, redirect to dashboard
+        // User is immediately confirmed (email confirmation disabled)
         toast({
-          title: "Success",
+          title: "Welcome to Orca Network!",
           description: "Account created successfully!",
         })
-        router.push('/dashboard')
+        router.push('/assistant')
       } else {
         // Email confirmation required
         toast({
-          title: "Account Created",
-          description: "Please check your email and click the verification link to complete signup. If no email received, check spam folder.",
+          title: "Check your email",
+          description: "We've sent you a confirmation link. Please check your email and click the link to activate your account.",
         })
       }
     }
@@ -104,7 +116,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: `${window.location.origin}/auth/callback?redirect_to=assistant`
       }
     })
 
@@ -173,7 +185,7 @@ export default function LoginPage() {
             </div>
           </div>
           
-          <div className="grid grid-cols-3 gap-2 mt-6">
+          <div className="grid grid-cols-2 gap-2 mt-6">
             <Button
               variant="outline"
               onClick={() => handleOAuthLogin('google')}
@@ -196,15 +208,6 @@ export default function LoginPage() {
             >
               <Github className="h-4 w-4" />
               GitHub
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleOAuthLogin('discord')}
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              <DiscordIcon />
-              Discord
             </Button>
           </div>
         </CardContent>
