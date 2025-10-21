@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card } from './ui/card'
-import { Mic, MicOff, Volume2, VolumeX, Send, Code, Plus, X, MessageSquare, ChevronLeft, ChevronRight, Search, Settings, User, CreditCard, LogOut, Edit } from 'lucide-react'
+import { Mic, MicOff, Volume2, VolumeX, Send, Code, Plus, X, MessageSquare, ChevronLeft, ChevronRight, Search, Settings, User, CreditCard, LogOut, Edit, Bot } from 'lucide-react'
+import { Switch } from './ui/switch'
 
 interface Message {
   id: string
@@ -53,6 +54,7 @@ export function StandaloneAIAssistant({
   const [userEmail, setUserEmail] = useState('')
   const [authProvider, setAuthProvider] = useState('')
   const [showSettingsPopup, setShowSettingsPopup] = useState(false)
+  const [autoAIAgent, setAutoAIAgent] = useState(false)
   const settingsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
@@ -914,6 +916,26 @@ export function StandaloneAIAssistant({
                   </div>
                 ))}
                 <div ref={messagesEndRef} />
+              </div>
+
+              {/* Automatic AI Agent Toggle */}
+              <div className="mb-3 flex justify-start">
+                <div className="bg-white/10 border border-white/20 rounded-lg p-2">
+                  <div className="flex items-center space-x-2">
+                    <Bot className="h-3 w-3 text-cyan-400" />
+                    <span className="text-white text-xs font-medium">Auto AI</span>
+                    <Switch
+                      checked={autoAIAgent}
+                      onCheckedChange={setAutoAIAgent}
+                      className="data-[state=checked]:bg-cyan-600 data-[state=unchecked]:bg-white/20 scale-75"
+                    />
+                  </div>
+                  {autoAIAgent && (
+                    <div className="mt-1 text-cyan-200 text-xs">
+                      Auto mode on
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Input Area */}
