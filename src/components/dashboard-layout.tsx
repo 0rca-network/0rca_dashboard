@@ -19,7 +19,10 @@ import {
   Wallet,
   Search,
   BarChart3,
-  Bell
+  Bell,
+  Vote,
+  Coins,
+  Building2
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
@@ -132,6 +135,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: '/user/wallet', icon: Wallet, label: 'Wallet', tourId: 'wallet' },
   ]
 
+  const daoNavItems = [
+    { href: '/dao/governance', icon: Vote, label: 'Governance', tourId: 'governance' },
+    { href: '/dao/treasury', icon: Building2, label: 'Treasury', tourId: 'treasury' },
+    { href: '/dao/tokens', icon: Coins, label: 'Tokens', tourId: 'tokens' },
+  ]
+
   const commonNavItems = [
     { href: '/notifications', icon: Bell, label: 'Notifications' },
     { href: '/settings', icon: Settings, label: 'Settings' },
@@ -166,6 +175,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </Button>
               </Link>
             ))}
+            
+            <div className="pt-4 border-t">
+              <div className="mb-2">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">DAO</span>
+              </div>
+              {daoNavItems.map((item) => (
+                <Link key={item.href} href={item.href} prefetch={true}>
+                  <Button
+                    variant={pathname === item.href ? "default" : "ghost"}
+                    className="w-full justify-start"
+                    data-tour={item.tourId}
+                  >
+                    <item.icon className="mr-2 h-4 w-4" />
+                    {item.label}
+                  </Button>
+                </Link>
+              ))}
+            </div>
             
             <div className="pt-4 border-t">
               {commonNavItems.map((item) => (

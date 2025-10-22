@@ -134,6 +134,158 @@ export interface Database {
           details?: any
         }
       }
+      token_balances: {
+        Row: {
+          id: string
+          user_id: string
+          balance: number
+          staked_balance: number
+          voting_power: number
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          balance?: number
+          staked_balance?: number
+          voting_power?: number
+        }
+        Update: {
+          balance?: number
+          staked_balance?: number
+          voting_power?: number
+          updated_at?: string
+        }
+      }
+      dao_proposals: {
+        Row: {
+          id: string
+          creator_id: string
+          title: string
+          description: string
+          proposal_type: 'fee_change' | 'treasury' | 'feature' | 'agent_curation' | 'other'
+          execution_data: any
+          voting_starts_at: string
+          voting_ends_at: string
+          status: 'active' | 'passed' | 'failed' | 'executed'
+          votes_for: number
+          votes_against: number
+          votes_abstain: number
+          quorum_required: number
+          created_at: string
+        }
+        Insert: {
+          creator_id: string
+          title: string
+          description: string
+          proposal_type: 'fee_change' | 'treasury' | 'feature' | 'agent_curation' | 'other'
+          execution_data?: any
+          voting_starts_at: string
+          voting_ends_at: string
+          status?: 'active' | 'passed' | 'failed' | 'executed'
+          votes_for?: number
+          votes_against?: number
+          votes_abstain?: number
+          quorum_required?: number
+        }
+        Update: {
+          title?: string
+          description?: string
+          proposal_type?: 'fee_change' | 'treasury' | 'feature' | 'agent_curation' | 'other'
+          execution_data?: any
+          voting_starts_at?: string
+          voting_ends_at?: string
+          status?: 'active' | 'passed' | 'failed' | 'executed'
+          votes_for?: number
+          votes_against?: number
+          votes_abstain?: number
+          quorum_required?: number
+        }
+      }
+      dao_votes: {
+        Row: {
+          id: string
+          proposal_id: string
+          voter_id: string
+          vote_type: 'for' | 'against' | 'abstain'
+          voting_power: number
+          created_at: string
+        }
+        Insert: {
+          proposal_id: string
+          voter_id: string
+          vote_type: 'for' | 'against' | 'abstain'
+          voting_power: number
+        }
+        Update: {
+          vote_type?: 'for' | 'against' | 'abstain'
+          voting_power?: number
+        }
+      }
+      dao_treasury: {
+        Row: {
+          id: string
+          proposal_id: string | null
+          transaction_type: 'revenue' | 'distribution' | 'grant' | 'expense'
+          amount: number
+          recipient_id: string | null
+          description: string
+          status: 'pending' | 'executed' | 'failed'
+          created_at: string
+        }
+        Insert: {
+          proposal_id?: string | null
+          transaction_type: 'revenue' | 'distribution' | 'grant' | 'expense'
+          amount: number
+          recipient_id?: string | null
+          description: string
+          status?: 'pending' | 'executed' | 'failed'
+        }
+        Update: {
+          proposal_id?: string | null
+          transaction_type?: 'revenue' | 'distribution' | 'grant' | 'expense'
+          amount?: number
+          recipient_id?: string | null
+          description?: string
+          status?: 'pending' | 'executed' | 'failed'
+        }
+      }
+      token_delegations: {
+        Row: {
+          id: string
+          delegator_id: string
+          delegate_id: string
+          amount: number
+          created_at: string
+        }
+        Insert: {
+          delegator_id: string
+          delegate_id: string
+          amount: number
+        }
+        Update: {
+          amount?: number
+        }
+      }
+      unstaking_requests: {
+        Row: {
+          id: string
+          user_id: string
+          amount: number
+          requested_at: string
+          available_at: string
+          status: 'pending' | 'completed'
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          amount: number
+          available_at: string
+          status?: 'pending' | 'completed'
+        }
+        Update: {
+          status?: 'pending' | 'completed'
+        }
+      }
     }
   }
 }
