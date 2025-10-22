@@ -175,7 +175,7 @@ export default function AgentDiscoveryPage() {
                 <option value="all">All Prices</option>
                 <option value="low">Low (≤$0.001)</option>
                 <option value="medium">Medium ($0.001-$0.01)</option>
-                <option value="high">High (>$0.01)</option>
+                <option value="high">High ({'>'}$0.01)</option>
               </select>
             </div>
           </div>
