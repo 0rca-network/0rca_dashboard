@@ -39,6 +39,8 @@ export default function TokensPage() {
   const [unstakeAmount, setUnstakeAmount] = useState('')
   const [delegateAddress, setDelegateAddress] = useState('')
   const [delegateAmount, setDelegateAmount] = useState('')
+  const [addBalanceAmount, setAddBalanceAmount] = useState('')
+  const [addBalanceDescription, setAddBalanceDescription] = useState('')
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
   const supabase = createClient()
@@ -102,28 +104,30 @@ export default function TokensPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { error } = await supabase
-      .from('token_balances')
-      .update({
-        balance: tokenBalance.balance - amount,
-        staked_balance: tokenBalance.staked_balance + amount,
-        voting_power: tokenBalance.voting_power + amount * 1.5 // 1.5x voting power for staked tokens
+    try {
+      const response = await fetch('/api/tokens/stake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, amount })
       })
-      .eq('user_id', user.id)
 
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      })
-    } else {
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to stake tokens')
+      }
+
       toast({
         title: "Success",
         description: `Staked ${amount} ORCA tokens successfully!`,
       })
       setStakeAmount('')
       fetchTokenData()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
     }
   }
 
@@ -143,30 +147,30 @@ export default function TokensPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // Calculate available_at as 7 days from now
-    const availableAt = new Date()
-    availableAt.setDate(availableAt.getDate() + 7)
-
-    // Start transaction
-    const { error: unstakeError } = await supabase.rpc('unstake_tokens', {
-      p_user_id: user.id,
-      p_amount: amount,
-      p_available_at: availableAt.toISOString()
-    })
-
-    if (unstakeError) {
-      toast({
-        title: "Error",
-        description: unstakeError.message,
-        variant: "destructive",
+    try {
+      const response = await fetch('/api/tokens/unstake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, amount })
       })
-    } else {
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to request unstake')
+      }
+
       toast({
         title: "Success",
         description: `Unstaking request for ${amount} ORCA tokens submitted! Tokens will be available in 7 days.`,
       })
       setUnstakeAmount('')
       fetchTokenData()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
     }
   }
 
@@ -186,21 +190,18 @@ export default function TokensPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { error } = await supabase
-      .from('token_delegations')
-      .insert({
-        delegator_id: user.id,
-        delegate_id: delegateAddress,
-        amount: amount
+    try {
+      const response = await fetch('/api/tokens/delegate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delegatorId: user.id, delegateId: delegateAddress, amount })
       })
 
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      })
-    } else {
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delegate voting power')
+      }
+
       toast({
         title: "Success",
         description: `Delegated ${amount} voting power successfully!`,
@@ -208,6 +209,113 @@ export default function TokensPage() {
       setDelegateAmount('')
       setDelegateAddress('')
       fetchTokenData()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleRevoke = async (delegationId: string) => {
+    try {
+      const response = await fetch(`/api/tokens/delegate/${delegationId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to revoke delegation')
+      }
+
+      toast({
+        title: "Success",
+        description: "Delegation revoked successfully!",
+      })
+      fetchTokenData()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleClaimRewards = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    try {
+      const response = await fetch('/api/tokens/claim-rewards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to claim rewards')
+      }
+
+      const data = await response.json()
+      toast({
+        title: "Success",
+        description: `Claimed ${data.rewardAmount.toFixed(8)} ORCA rewards!`,
+      })
+      fetchTokenData()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleAddBalance = async () => {
+    if (!addBalanceAmount || !addBalanceDescription) return
+
+    const amount = parseFloat(addBalanceAmount)
+    if (amount <= 0) {
+      toast({
+        title: "Error",
+        description: "Amount must be greater than 0",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    try {
+      const response = await fetch('/api/tokens/add-balance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, amount, description: addBalanceDescription })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to add balance')
+      }
+
+      const data = await response.json()
+      toast({
+        title: "Success",
+        description: `Added ${amount} ORCA to balance!`,
+      })
+      setAddBalanceAmount('')
+      setAddBalanceDescription('')
+      fetchTokenData()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
     }
   }
 
@@ -485,14 +593,55 @@ export default function TokensPage() {
               <CardContent>
                 <div className="text-center py-8">
                   <Gift className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="font-medium mb-2">No Rewards Available</h3>
+                  <h3 className="font-medium mb-2">Claim Staking Rewards</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Rewards will be available for claiming once the staking system is fully active
+                    Claim your accumulated staking rewards
                   </p>
-                  <Button variant="outline" disabled>
+                  <Button onClick={handleClaimRewards} className="w-full">
                     Claim Rewards
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Plus className="mr-2 h-5 w-5" />
+                  Add Balance
+                </CardTitle>
+                <CardDescription>Add tokens to your balance (Admin function)</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="add-amount">Amount</Label>
+                  <Input
+                    id="add-amount"
+                    type="number"
+                    placeholder="Enter amount"
+                    value={addBalanceAmount}
+                    onChange={(e) => setAddBalanceAmount(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="add-description">Description</Label>
+                  <Input
+                    id="add-description"
+                    placeholder="Reason for adding balance"
+                    value={addBalanceDescription}
+                    onChange={(e) => setAddBalanceDescription(e.target.value)}
+                  />
+                </div>
+                <Button
+                  onClick={handleAddBalance}
+                  className="w-full"
+                  disabled={!addBalanceAmount || !addBalanceDescription}
+                >
+                  Add Balance
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Note: This function is intended for administrative use or testing purposes.
+                </p>
               </CardContent>
             </Card>
 

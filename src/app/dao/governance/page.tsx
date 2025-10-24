@@ -107,7 +107,7 @@ export default function GovernancePage() {
 
   const handleCreateProposal = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user || !tokenBalance || tokenBalance.voting_power < 10000) return
+    if (!user || !tokenBalance || tokenBalance.voting_power < 100) return
 
     setCreating(true)
 
@@ -410,7 +410,7 @@ export default function GovernancePage() {
                 />
               </div>
               
-              {tokenBalance && tokenBalance.voting_power >= 10000 ? (
+              {tokenBalance && tokenBalance.voting_power >= 100 ? (
                 <Button 
                   onClick={handleCreateProposal}
                   className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 shadow-lg"
@@ -422,7 +422,7 @@ export default function GovernancePage() {
               ) : (
                 <div className="text-center p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-lg">
                   <p className="text-yellow-300 text-sm">
-                    You need at least 10,000 voting power to create proposals.
+                    You need at least 100 voting power to create proposals.
                     Current: {tokenBalance?.voting_power.toLocaleString() || 0}
                   </p>
                 </div>

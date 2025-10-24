@@ -1,0 +1,240 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum userRole {
+  CREATOR
+  USER
+}
+
+enum proposalType {
+  FEE_CHANGE
+  TREASURY
+  FEATURE
+  AGENT_CURATION
+  OTHER
+}
+
+enum proposalStatus {
+  ACTIVE
+  PASSED
+  FAILED
+  EXECUTED
+}
+
+enum voteType {
+  FOR
+  AGAINST
+  ABSTAIN
+}
+
+enum treasuryTransactionType {
+  REVENUE
+  DISTRIBUTION
+  GRANT
+  EXPENSE
+}
+
+enum transactionStatus {
+  PENDING
+  EXECUTED
+  FAILED
+}
+
+enum unstakingStatus {
+  PENDING
+  COMPLETED
+}
+
+// Models
+model profiles {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  role        userRole @default(USER)
+  walletBalance Decimal @default(0) @db.Decimal(18,8)
+  monthlyBudget Decimal? @db.Decimal(18,8)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  tokenBalance tokenBalances?
+  daoProposals daoProposals[]
+  daoVotes daoVotes[]
+  delegations tokenDelegations[] @relation("delegator")
+  receivedDelegations tokenDelegations[] @relation("delegate")
+  unstakingRequests unstakingRequests[]
+  treasuryTransactions treasuryTransactions[]
+  createdAgents agents[]
+  executions executions[]
+  transactions transactions[]
+
+  @@map("profiles")
+}
+
+model tokenBalances {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  balance       Decimal  @default(0) @db.Decimal(18,8)
+  stakedBalance Decimal @default(0) @db.Decimal(18,8)
+  votingPower   Decimal  @default(0) @db.Decimal(18,8)
+  updatedAt     DateTime @default(now()) @map("updated_at")
+
+  user profiles @relation(fields: [userId], references: [id])
+
+  @@map("token_balances")
+}
+
+model daoProposals {
+  id              String        @id @default(uuid())
+  creatorId       String
+  title           String
+  description     String
+  proposalType    proposalType
+  executionData   Json?
+  votingStartsAt  DateTime      @map("voting_starts_at")
+  votingEndsAt    DateTime      @map("voting_ends_at")
+  status          proposalStatus @default(ACTIVE)
+  votesFor        Decimal       @default(0) @db.Decimal(18,8) @map("votes_for")
+  votesAgainst    Decimal       @default(0) @db.Decimal(18,8) @map("votes_against")
+  votesAbstain    Decimal       @default(0) @db.Decimal(18,8) @map("votes_abstain")
+  quorumRequired  Decimal       @default(1000000) @db.Decimal(18,8) @map("quorum_required")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  creator profiles @relation(fields: [creatorId], references: [id])
+  votes daoVotes[]
+  treasuryTransactions treasuryTransactions[]
+
+  @@map("dao_proposals")
+}
+
+model daoVotes {
+  id           String   @id @default(uuid())
+  proposalId   String   @map("proposal_id")
+  voterId      String   @map("voter_id")
+  voteType     voteType
+  votingPower  Decimal  @db.Decimal(18,8)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  proposal daoProposals @relation(fields: [proposalId], references: [id])
+  voter profiles @relation(fields: [voterId], references: [id])
+
+  @@unique([proposalId, voterId])
+  @@map("dao_votes")
+}
+
+model treasuryTransactions {
+  id              String                  @id @default(uuid())
+  proposalId      String?                 @map("proposal_id")
+  transactionType treasuryTransactionType
+  amount          Decimal                 @db.Decimal(18,8)
+  recipientId     String?                 @map("recipient_id")
+  description     String
+  status          transactionStatus       @default(PENDING)
+  createdAt       DateTime                @default(now()) @map("created_at")
+
+  proposal daoProposals? @relation(fields: [proposalId], references: [id])
+  recipient profiles? @relation(fields: [recipientId], references: [id])
+
+  @@map("dao_treasury")
+}
+
+model tokenDelegations {
+  id           String   @id @default(uuid())
+  delegatorId  String   @map("delegator_id")
+  delegateId   String   @map("delegate_id")
+  amount       Decimal  @db.Decimal(18,8)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  delegator profiles @relation("delegator", fields: [delegatorId], references: [id])
+  delegate profiles @relation("delegate", fields: [delegateId], references: [id])
+
+  @@unique([delegatorId, delegateId])
+  @@map("token_delegations")
+}
+
+model unstakingRequests {
+  id           String         @id @default(uuid())
+  userId       String         @map("user_id")
+  amount       Decimal        @db.Decimal(18,8)
+  requestedAt  DateTime       @default(now()) @map("requested_at")
+  availableAt  DateTime       @map("available_at")
+  status       unstakingStatus @default(PENDING)
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  user profiles @relation(fields: [userId], references: [id])
+
+  @@map("unstaking_requests")
+}
+
+model agents {
+  id                   String      @id @default(uuid())
+  creatorId            String      @map("creator_id")
+  name                 String
+  description          String
+  status               String      @default("inactive")
+  category             String
+  pricingType          String      @map("pricing_type")
+  priceDetails         Json        @map("price_details")
+  apiEndpoint          String      @map("api_endpoint")
+  maxConcurrentRequests Int        @default(10) @map("max_concurrent_requests")
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @default(now()) @map("updated_at")
+
+  creator profiles @relation(fields: [creatorId], references: [id])
+  executions executions[]
+  earnings earnings[]
+
+  @@map("agents")
+}
+
+model executions {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  agentId        String   @map("agent_id")
+  goal           String
+  status         String   @default("pending")
+  tokenCost      Decimal  @default(0) @db.Decimal(18,8) @map("token_cost")
+  totalCost      Decimal  @default(0) @db.Decimal(18,8) @map("total_cost")
+  timeTakenMs    Int      @default(0) @map("time_taken_ms")
+  results        Json?
+  decisionHashes Json?    @map("decision_hashes")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user profiles @relation(fields: [userId], references: [id])
+  agent agents @relation(fields: [agentId], references: [id])
+
+  @@map("executions")
+}
+
+model earnings {
+  id            String   @id @default(uuid())
+  agentId       String   @map("agent_id")
+  revenueAmount Decimal  @db.Decimal(18,8) @map("revenue_amount")
+  platformFee   Decimal  @db.Decimal(18,8) @map("platform_fee")
+  timestamp     DateTime @default(now())
+
+  agent agents @relation(fields: [agentId], references: [id])
+
+  @@map("earnings")
+}
+
+model transactions {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String
+  amount    Decimal  @db.Decimal(18,8)
+  details   Json?
+  timestamp DateTime @default(now())
+
+  user profiles @relation(fields: [userId], references: [id])
+
+  @@map("transactions")
+}
