@@ -1,10 +1,6 @@
 import { Router, Request, Response } from 'express'
-import { db } from '../index'
+import { createClient } from '@/lib/supabase/server'
 import { blockchainService } from '../services/blockchain'
-import { syncService } from '../services/sync-service'
-import { rewardsWorker } from '../workers/rewards-worker'
-import { tokenBalances, treasuryTransactions, unstakingRequests, tokenDelegations } from '../../db/schema'
-import { eq } from 'drizzle-orm'
 
 const router = Router()
 
@@ -13,7 +9,17 @@ router.get('/balance/:userId', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params
 
-    const balance = await syncService.syncUserBalance(userId)
+    const supabase = createClient()
+
+    const { data: balance, error } = await supabase
+      .from('token_balances')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+
+    if (error || !balance) {
+      return res.status(404).json({ error: 'Balance not found' })
+    }
 
     res.json(balance)
   } catch (error) {
@@ -36,35 +42,47 @@ router.post('/stake', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid amount' })
     }
 
+    const supabase = createClient()
+
     // Get current balance
-    const balance = await syncService.syncUserBalance(userId)
-    if (balance.balance.toNumber() < parsedAmount) {
+    const { data: balanceData, error: balanceError } = await supabase
+      .from('token_balances')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+
+    if (balanceError || !balanceData) {
+      return res.status(400).json({ error: 'Balance not found' })
+    }
+
+    if (balanceData.balance < parsedAmount) {
       return res.status(400).json({ error: 'Insufficient balance' })
     }
 
-    // Create blockchain transaction for staking
-    const transaction = await blockchainService.createStakeTransaction(
-      userId,
-      parsedAmount
-    )
+    // Update local balance
+    const newBalance = balanceData.balance - parsedAmount
+    const newStakedBalance = balanceData.staked_balance + parsedAmount
+    const newVotingPower = newBalance + newStakedBalance * 1.5
 
-    // Update local balance (this would normally be done after blockchain confirmation)
-    await prisma.tokenBalance.update({
-      where: { userId },
-      data: {
-        balance: { decrement: parsedAmount },
-        stakedBalance: { increment: parsedAmount },
-        votingPower: { set: (balance.balance.toNumber() - parsedAmount) + (balance.stakedBalance.toNumber() + parsedAmount) * 1.5 },
-        updatedAt: new Date()
-      }
-    })
+    const { error: updateError } = await supabase
+      .from('token_balances')
+      .update({
+        balance: newBalance,
+        staked_balance: newStakedBalance,
+        voting_power: newVotingPower,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+
+    if (updateError) {
+      return res.status(500).json({ error: 'Failed to update balance' })
+    }
 
     res.json({
       success: true,
-      transaction: {
-        instructions: transaction.instructions,
-        signers: transaction.signers.map(s => s.toString())
-      }
+      newBalance,
+      newStakedBalance,
+      newVotingPower
     })
   } catch (error) {
     console.error('Error staking tokens:', error)
@@ -86,9 +104,20 @@ router.post('/unstake', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid amount' })
     }
 
+    const supabase = createClient()
+
     // Get current balance
-    const balance = await syncService.syncUserBalance(userId)
-    if (balance.stakedBalance.toNumber() < parsedAmount) {
+    const { data: balanceData, error: balanceError } = await supabase
+      .from('token_balances')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+
+    if (balanceError || !balanceData) {
+      return res.status(400).json({ error: 'Balance not found' })
+    }
+
+    if (balanceData.staked_balance < parsedAmount) {
       return res.status(400).json({ error: 'Insufficient staked balance' })
     }
 
@@ -96,27 +125,24 @@ router.post('/unstake', async (req: Request, res: Response) => {
     const availableAt = new Date()
     availableAt.setDate(availableAt.getDate() + 7) // 7-day unstaking period
 
-    const unstakingRequest = await prisma.unstakingRequest.create({
-      data: {
-        userId,
+    const { data: unstakingRequest, error: unstakingError } = await supabase
+      .from('unstaking_requests')
+      .insert({
+        user_id: userId,
         amount: parsedAmount,
-        availableAt,
+        available_at: availableAt.toISOString(),
         status: 'PENDING'
-      }
-    })
+      })
+      .select()
+      .single()
 
-    // Create blockchain transaction for unstaking
-    const transaction = await blockchainService.createUnstakeTransaction(
-      userId,
-      parsedAmount
-    )
+    if (unstakingError) {
+      return res.status(500).json({ error: 'Failed to create unstaking request' })
+    }
 
     res.json({
       unstakingRequest,
-      transaction: {
-        instructions: transaction.instructions,
-        signers: transaction.signers.map(s => s.toString())
-      }
+      success: true
     })
   } catch (error) {
     console.error('Error requesting unstake:', error)
@@ -138,52 +164,87 @@ router.post('/delegate', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid amount' })
     }
 
+    const supabase = createClient()
+
     // Check if delegator has enough voting power
-    const balance = await syncService.syncUserBalance(delegatorId)
-    if (balance.votingPower.toNumber() < parsedAmount) {
+    const { data: balanceData, error: balanceError } = await supabase
+      .from('token_balances')
+      .select('*')
+      .eq('user_id', delegatorId)
+      .single()
+
+    if (balanceError || !balanceData) {
+      return res.status(400).json({ error: 'Balance not found' })
+    }
+
+    if (balanceData.voting_power < parsedAmount) {
       return res.status(400).json({ error: 'Insufficient voting power' })
     }
 
     // Check if delegation already exists
-    const existingDelegation = await prisma.tokenDelegation.findUnique({
-      where: {
-        delegatorId_delegateId: {
-          delegatorId,
-          delegateId
-        }
-      }
-    })
+    const { data: existingDelegation, error: delegationError } = await supabase
+      .from('token_delegations')
+      .select('*')
+      .eq('delegator_id', delegatorId)
+      .eq('delegate_id', delegateId)
+      .single()
 
     let difference = parsedAmount
     if (existingDelegation) {
-      difference = parsedAmount - existingDelegation.amount.toNumber()
+      difference = parsedAmount - existingDelegation.amount
       // Update existing delegation
-      await prisma.tokenDelegation.update({
-        where: { id: existingDelegation.id },
-        data: { amount: parsedAmount }
-      })
+      const { error: updateError } = await supabase
+        .from('token_delegations')
+        .update({ amount: parsedAmount })
+        .eq('id', existingDelegation.id)
+
+      if (updateError) {
+        return res.status(500).json({ error: 'Failed to update delegation' })
+      }
     } else {
       // Create new delegation
-      await prisma.tokenDelegation.create({
-        data: {
-          delegatorId,
-          delegateId,
+      const { error: createError } = await supabase
+        .from('token_delegations')
+        .insert({
+          delegator_id: delegatorId,
+          delegate_id: delegateId,
           amount: parsedAmount
-        }
-      })
+        })
+
+      if (createError) {
+        return res.status(500).json({ error: 'Failed to create delegation' })
+      }
     }
 
     // Update voting powers
     if (difference !== 0) {
-      await prisma.tokenBalance.update({
-        where: { userId: delegatorId },
-        data: { votingPower: { decrement: difference } }
-      })
+      const { error: updateDelegatorError } = await supabase
+        .from('token_balances')
+        .update({ voting_power: balanceData.voting_power - difference })
+        .eq('user_id', delegatorId)
 
-      await prisma.tokenBalance.update({
-        where: { userId: delegateId },
-        data: { votingPower: { increment: difference } }
-      })
+      if (updateDelegatorError) {
+        return res.status(500).json({ error: 'Failed to update delegator voting power' })
+      }
+
+      const { data: delegateBalance, error: delegateBalanceError } = await supabase
+        .from('token_balances')
+        .select('*')
+        .eq('user_id', delegateId)
+        .single()
+
+      if (delegateBalanceError || !delegateBalance) {
+        return res.status(400).json({ error: 'Delegate balance not found' })
+      }
+
+      const { error: updateDelegateError } = await supabase
+        .from('token_balances')
+        .update({ voting_power: delegateBalance.voting_power + difference })
+        .eq('user_id', delegateId)
+
+      if (updateDelegateError) {
+        return res.status(500).json({ error: 'Failed to update delegate voting power' })
+      }
     }
 
     res.json({ success: true })
@@ -198,28 +259,20 @@ router.get('/delegations/:userId', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params
 
-    const delegations = await prisma.tokenDelegation.findMany({
-      where: {
-        OR: [
-          { delegatorId: userId },
-          { delegateId: userId }
-        ]
-      },
-      include: {
-        delegator: {
-          select: {
-            id: true,
-            email: true
-          }
-        },
-        delegate: {
-          select: {
-            id: true,
-            email: true
-          }
-        }
-      }
-    })
+    const supabase = createClient()
+
+    const { data: delegations, error } = await supabase
+      .from('token_delegations')
+      .select(`
+        *,
+        delegator:profiles!delegator_id(id, email),
+        delegate:profiles!delegate_id(id, email)
+      `)
+      .or(`delegator_id.eq.${userId},delegate_id.eq.${userId}`)
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to fetch delegations' })
+    }
 
     res.json(delegations)
   } catch (error) {
@@ -233,12 +286,17 @@ router.get('/unstaking/:userId', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params
 
-    const requests = await prisma.unstakingRequest.findMany({
-      where: { userId },
-      orderBy: {
-        requestedAt: 'desc'
-      }
-    })
+    const supabase = createClient()
+
+    const { data: requests, error } = await supabase
+      .from('unstaking_requests')
+      .select('*')
+      .eq('user_id', userId)
+      .order('requested_at', { ascending: false })
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to fetch unstaking requests' })
+    }
 
     res.json(requests)
   } catch (error) {
@@ -256,19 +314,27 @@ router.post('/claim-rewards', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing userId' })
     }
 
-    // Calculate and apply rewards
-    const rewardAmount = await rewardsWorker.calculateRewardsForUser(userId)
+    const supabase = createClient()
+
+    // Calculate and apply rewards (simplified for now)
+    const rewardAmount = 0 // TODO: Implement rewards calculation
 
     // Create reward claim record
-    const claimRecord = await prisma.treasuryTransaction.create({
-      data: {
-        transactionType: 'DISTRIBUTION',
+    const { data: claimRecord, error: claimError } = await supabase
+      .from('dao_treasury')
+      .insert({
+        transaction_type: 'DISTRIBUTION',
         amount: rewardAmount,
-        recipientId: userId,
+        recipient_id: userId,
         description: 'Staking rewards claim',
         status: 'EXECUTED'
-      }
-    })
+      })
+      .select()
+      .single()
+
+    if (claimError) {
+      return res.status(500).json({ error: 'Failed to create claim record' })
+    }
 
     res.json({
       success: true,
@@ -286,31 +352,68 @@ router.delete('/delegate/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params
 
-    const delegation = await prisma.tokenDelegation.findUnique({
-      where: { id }
-    })
+    const supabase = createClient()
 
-    if (!delegation) {
+    const { data: delegation, error: delegationError } = await supabase
+      .from('token_delegations')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (delegationError || !delegation) {
       return res.status(404).json({ error: 'Delegation not found' })
     }
 
-    const amount = delegation.amount.toNumber()
+    const amount = delegation.amount
 
     // Remove delegation
-    await prisma.tokenDelegation.delete({
-      where: { id }
-    })
+    const { error: deleteError } = await supabase
+      .from('token_delegations')
+      .delete()
+      .eq('id', id)
+
+    if (deleteError) {
+      return res.status(500).json({ error: 'Failed to delete delegation' })
+    }
 
     // Update voting powers
-    await prisma.tokenBalance.update({
-      where: { userId: delegation.delegatorId },
-      data: { votingPower: { increment: amount } }
-    })
+    const { data: delegatorBalance, error: delegatorError } = await supabase
+      .from('token_balances')
+      .select('*')
+      .eq('user_id', delegation.delegator_id)
+      .single()
 
-    await prisma.tokenBalance.update({
-      where: { userId: delegation.delegateId },
-      data: { votingPower: { decrement: amount } }
-    })
+    if (delegatorError || !delegatorBalance) {
+      return res.status(400).json({ error: 'Delegator balance not found' })
+    }
+
+    const { error: updateDelegatorError } = await supabase
+      .from('token_balances')
+      .update({ voting_power: delegatorBalance.voting_power + amount })
+      .eq('user_id', delegation.delegator_id)
+
+    if (updateDelegatorError) {
+      return res.status(500).json({ error: 'Failed to update delegator voting power' })
+    }
+
+    const { data: delegateBalance, error: delegateError } = await supabase
+      .from('token_balances')
+      .select('*')
+      .eq('user_id', delegation.delegate_id)
+      .single()
+
+    if (delegateError || !delegateBalance) {
+      return res.status(400).json({ error: 'Delegate balance not found' })
+    }
+
+    const { error: updateDelegateError } = await supabase
+      .from('token_balances')
+      .update({ voting_power: delegateBalance.voting_power - amount })
+      .eq('user_id', delegation.delegate_id)
+
+    if (updateDelegateError) {
+      return res.status(500).json({ error: 'Failed to update delegate voting power' })
+    }
 
     res.json({ success: true })
   } catch (error) {
@@ -333,31 +436,52 @@ router.post('/add-balance', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid amount' })
     }
 
+    const supabase = createClient()
+
     // Get current balance
-    const balance = await syncService.syncUserBalance(userId)
+    const { data: balanceData, error: balanceError } = await supabase
+      .from('token_balances')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+
+    if (balanceError || !balanceData) {
+      return res.status(400).json({ error: 'Balance not found' })
+    }
 
     // Update balance and voting power
-    await prisma.tokenBalance.update({
-      where: { userId },
-      data: {
-        balance: { increment: parsedAmount },
-        votingPower: { increment: parsedAmount },
-        updatedAt: new Date()
-      }
-    })
+    const newBalance = balanceData.balance + parsedAmount
+    const newVotingPower = balanceData.voting_power + parsedAmount
+
+    const { error: updateError } = await supabase
+      .from('token_balances')
+      .update({
+        balance: newBalance,
+        voting_power: newVotingPower,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+
+    if (updateError) {
+      return res.status(500).json({ error: 'Failed to update balance' })
+    }
 
     // Create treasury transaction record
-    await prisma.treasuryTransaction.create({
-      data: {
-        transactionType: 'DISTRIBUTION',
+    const { error: transactionError } = await supabase
+      .from('dao_treasury')
+      .insert({
+        transaction_type: 'DISTRIBUTION',
         amount: parsedAmount,
-        recipientId: userId,
+        recipient_id: userId,
         description: description || 'Balance addition',
         status: 'EXECUTED'
-      }
-    })
+      })
 
-    res.json({ success: true, newBalance: balance.balance.toNumber() + parsedAmount })
+    if (transactionError) {
+      return res.status(500).json({ error: 'Failed to create transaction record' })
+    }
+
+    res.json({ success: true, newBalance })
   } catch (error) {
     console.error('Error adding balance:', error)
     res.status(500).json({ error: 'Failed to add balance' })
@@ -367,35 +491,30 @@ router.post('/add-balance', async (req: Request, res: Response) => {
 // GET /api/tokens/stats - Get token statistics
 router.get('/stats', async (req: Request, res: Response) => {
   try {
+    const supabase = createClient()
+
     const [
       totalSupply,
       totalDelegations,
       activeUnstakingRequests
     ] = await Promise.all([
-      prisma.tokenBalance.aggregate({
-        _sum: {
-          balance: true,
-          stakedBalance: true
-        }
-      }),
-      prisma.tokenDelegation.count(),
-      prisma.unstakingRequest.count({
-        where: { status: 'PENDING' }
-      })
+      supabase.from('token_balances').select('balance, staked_balance'),
+      supabase.from('token_delegations').select('*', { count: 'exact' }),
+      supabase.from('unstaking_requests').select('*', { count: 'exact' }).eq('status', 'PENDING')
     ])
 
-    const totalVotingPower = await prisma.tokenBalance.aggregate({
-      _sum: {
-        votingPower: true
-      }
-    })
+    const totalVotingPower = await supabase.from('token_balances').select('voting_power')
+
+    const totalBalance = totalSupply.data?.reduce((sum, item) => sum + item.balance, 0) || 0
+    const totalStaked = totalSupply.data?.reduce((sum, item) => sum + item.staked_balance, 0) || 0
+    const totalVP = totalVotingPower.data?.reduce((sum, item) => sum + item.voting_power, 0) || 0
 
     res.json({
-      totalSupply: (totalSupply._sum.balance?.toNumber() || 0) + (totalSupply._sum.stakedBalance?.toNumber() || 0),
-      totalStaked: totalSupply._sum.stakedBalance?.toNumber() || 0,
-      totalDelegations,
-      activeUnstakingRequests,
-      totalVotingPower: totalVotingPower._sum.votingPower?.toNumber() || 0
+      totalSupply: totalBalance + totalStaked,
+      totalStaked,
+      totalDelegations: totalDelegations.count || 0,
+      activeUnstakingRequests: activeUnstakingRequests.count || 0,
+      totalVotingPower: totalVP
     })
   } catch (error) {
     console.error('Error fetching token stats:', error)

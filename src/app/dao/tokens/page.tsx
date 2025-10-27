@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Coins, Lock, Users, TrendingUp, ArrowUpDown, Gift } from 'lucide-react'
+import { Coins, Lock, Users, TrendingUp, ArrowUpDown, Gift, Plus } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 interface TokenBalance {
@@ -61,7 +61,34 @@ export default function TokensPage() {
       .single()
 
     if (balanceData) {
-      setTokenBalance(balanceData)
+      // If balance is less than 100, update to 100
+      if (balanceData.balance < 100) {
+        const { data: updateData } = await supabase
+          .from('token_balances')
+          .update({ balance: 100, voting_power: 100 })
+          .eq('user_id', user.id)
+          .select()
+          .single()
+
+        if (updateData) {
+          setTokenBalance(updateData)
+        } else {
+          setTokenBalance(balanceData)
+        }
+      } else {
+        setTokenBalance(balanceData)
+      }
+    } else {
+      // If not exists, create with default balance
+      const { data: insertData } = await supabase
+        .from('token_balances')
+        .insert({ user_id: user.id, balance: 100, voting_power: 100 })
+        .select()
+        .single()
+
+      if (insertData) {
+        setTokenBalance(insertData)
+      }
     }
 
     // Fetch delegations

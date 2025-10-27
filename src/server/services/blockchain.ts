@@ -34,7 +34,7 @@ export class BlockchainService {
 
   async initialize() {
     console.log('🔗 Initializing blockchain service...')
-    console.log(`📡 Connected to Solana: ${this.connection.rpcEndpoint}`)
+    console.log(`📡 Connected to Algorand: ${this.connection.rpcEndpoint}`)
     console.log(`🏛️ Governance Program: ${this.governanceProgramId.toString()}`)
     console.log(`💰 Treasury Accounts: ${this.treasuryAccounts.length}`)
   }
