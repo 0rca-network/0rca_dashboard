@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { prisma } from '../../db/schema'
+import { createClient } from '@/lib/supabase/server'
 import { blockchainService } from '../services/blockchain'
 import { syncService } from '../services/sync-service'
 
@@ -10,34 +10,25 @@ router.get('/proposals', async (req: Request, res: Response) => {
   try {
     const { status, type } = req.query
 
-    const where: any = {}
-    if (status) where.status = status
-    if (type) where.proposalType = type
+    const supabase = createClient()
 
-    const proposals = await prisma.daoProposals.findMany({
-      where,
-      include: {
-        creator: {
-          select: {
-            id: true,
-            email: true
-          }
-        },
-        votes: {
-          include: {
-            voter: {
-              select: {
-                id: true,
-                email: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    let query = supabase
+      .from('dao_proposals')
+      .select(`
+        *,
+        creator:profiles(id, email),
+        votes:dao_votes(*, voter:profiles(id, email))
+      `)
+      .order('created_at', { ascending: false })
+
+    if (status) query = query.eq('status', status)
+    if (type) query = query.eq('proposal_type', type)
+
+    const { data: proposals, error } = await query
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to fetch proposals' })
+    }
 
     res.json(proposals)
   } catch (error) {
@@ -51,29 +42,19 @@ router.get('/proposals/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params
 
-    const proposal = await prisma.daoProposals.findUnique({
-      where: { id },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            email: true
-          }
-        },
-        votes: {
-          include: {
-            voter: {
-              select: {
-                id: true,
-                email: true
-              }
-            }
-          }
-        }
-      }
-    })
+    const supabase = createClient()
 
-    if (!proposal) {
+    const { data: proposal, error } = await supabase
+      .from('dao_proposals')
+      .select(`
+        *,
+        creator:profiles(id, email),
+        votes:dao_votes(*, voter:profiles(id, email))
+      `)
+      .eq('id', id)
+      .single()
+
+    if (error || !proposal) {
       return res.status(404).json({ error: 'Proposal not found' })
     }
 
@@ -102,26 +83,29 @@ router.post('/proposals', async (req: Request, res: Response) => {
     const votingEndsAt = new Date()
     votingEndsAt.setDate(votingEndsAt.getDate() + 7)
 
-    const proposal = await prisma.daoProposals.create({
-      data: {
-        creatorId: userId,
+    const supabase = createClient()
+
+    const { data: proposal, error } = await supabase
+      .from('dao_proposals')
+      .insert({
+        creator_id: userId,
         title,
         description,
-        proposalType,
-        votingStartsAt: new Date(),
-        votingEndsAt,
+        proposal_type: proposalType,
+        voting_starts_at: new Date().toISOString(),
+        voting_ends_at: votingEndsAt.toISOString(),
         status: 'ACTIVE',
-        quorumRequired: 1000000
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            email: true
-          }
-        }
-      }
-    })
+        quorum_required: 1000000
+      })
+      .select(`
+        *,
+        creator:profiles(id, email)
+      `)
+      .single()
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to create proposal' })
+    }
 
     // Create blockchain transaction for proposal
     const transaction = await blockchainService.createProposalTransaction(
@@ -152,27 +136,29 @@ router.post('/vote', async (req: Request, res: Response) => {
     }
 
     // Check if proposal is still active
-    const proposal = await prisma.daoProposals.findUnique({
-      where: { id: proposalId }
-    })
+    const supabase = createClient()
 
-    if (!proposal || proposal.status !== 'ACTIVE') {
+    const { data: proposal, error: proposalError } = await supabase
+      .from('dao_proposals')
+      .select('*')
+      .eq('id', proposalId)
+      .single()
+
+    if (proposalError || !proposal || proposal.status !== 'ACTIVE') {
       return res.status(400).json({ error: 'Proposal is not active' })
     }
 
-    if (new Date() > proposal.votingEndsAt) {
+    if (new Date() > new Date(proposal.voting_ends_at)) {
       return res.status(400).json({ error: 'Voting period has ended' })
     }
 
     // Check if user already voted
-    const existingVote = await prisma.daoVotes.findUnique({
-      where: {
-        proposalId_voterId: {
-          proposalId,
-          voterId
-        }
-      }
-    })
+    const { data: existingVote, error: voteError } = await supabase
+      .from('dao_votes')
+      .select('*')
+      .eq('proposal_id', proposalId)
+      .eq('voter_id', voterId)
+      .single()
 
     if (existingVote) {
       return res.status(400).json({ error: 'User has already voted on this proposal' })
@@ -182,14 +168,20 @@ router.post('/vote', async (req: Request, res: Response) => {
     const tokenBalance = await syncService.syncUserBalance(voterId)
 
     // Create vote record
-    const vote = await prisma.daoVotes.create({
-      data: {
-        proposalId,
-        voterId,
-        voteType,
-        votingPower: tokenBalance.votingPower
-      }
-    })
+    const { data: vote, error: createVoteError } = await supabase
+      .from('dao_votes')
+      .insert({
+        proposal_id: proposalId,
+        voter_id: voterId,
+        vote_type: voteType,
+        voting_power: tokenBalance.votingPower
+      })
+      .select()
+      .single()
+
+    if (createVoteError) {
+      return res.status(500).json({ error: 'Failed to cast vote' })
+    }
 
     // Update proposal vote counts
     const updateData: any = {}
@@ -205,10 +197,14 @@ router.post('/vote', async (req: Request, res: Response) => {
         break
     }
 
-    await prisma.daoProposals.update({
-      where: { id: proposalId },
-      data: updateData
-    })
+    const { error: updateError } = await supabase
+      .from('dao_proposals')
+      .update(updateData)
+      .eq('id', proposalId)
+
+    if (updateError) {
+      return res.status(500).json({ error: 'Failed to update proposal' })
+    }
 
     // Create blockchain transaction for vote
     const transaction = await blockchainService.createVoteTransaction(
@@ -230,26 +226,30 @@ router.post('/vote', async (req: Request, res: Response) => {
 // GET /api/governance/stats - Get governance statistics
 router.get('/stats', async (req: Request, res: Response) => {
   try {
+    const supabase = createClient()
+
     const [
-      totalProposals,
-      activeProposals,
-      totalVotes,
-      uniqueVoters
+      totalProposalsResult,
+      activeProposalsResult,
+      totalVotesResult,
+      uniqueVotersResult
     ] = await Promise.all([
-      prisma.daoProposals.count(),
-      prisma.daoProposals.count({ where: { status: 'ACTIVE' } }),
-      prisma.daoVotes.count(),
-      prisma.daoVotes.groupBy({
-        by: ['voterId'],
-        _count: true
-      })
+      supabase.from('dao_proposals').select('*', { count: 'exact', head: true }),
+      supabase.from('dao_proposals').select('*', { count: 'exact', head: true }).eq('status', 'ACTIVE'),
+      supabase.from('dao_votes').select('*', { count: 'exact', head: true }),
+      supabase.from('dao_votes').select('voter_id')
     ])
+
+    const totalProposals = totalProposalsResult.count || 0
+    const activeProposals = activeProposalsResult.count || 0
+    const totalVotes = totalVotesResult.count || 0
+    const uniqueVoters = uniqueVotersResult.data ? new Set(uniqueVotersResult.data.map((v: any) => v.voter_id)).size : 0
 
     res.json({
       totalProposals,
       activeProposals,
       totalVotes,
-      uniqueVoters: uniqueVoters.length
+      uniqueVoters
     })
   } catch (error) {
     console.error('Error fetching governance stats:', error)

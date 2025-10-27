@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { prisma } from '../../db/schema'
+import { createClient } from '@/lib/supabase/server'
 import { blockchainService } from '../services/blockchain'
 
 const router = Router()
@@ -12,39 +12,29 @@ router.get('/summary', async (req: Request, res: Response) => {
     const usdValue = treasuryBalance * tokenPrice
 
     // Get recent transactions
-    const recentTransactions = await prisma.treasuryTransactions.findMany({
-      take: 10,
-      orderBy: {
-        createdAt: 'desc'
-      },
-      include: {
-        recipient: {
-          select: {
-            id: true,
-            email: true
-          }
-        }
-      }
-    })
+    const supabase = createClient()
+
+    const { data: recentTransactions, error: recentError } = await supabase
+      .from('dao_treasury')
+      .select(`*, recipient:profiles(id, email)`)
+      .order('created_at', { ascending: false })
+      .limit(10)
 
     // Calculate monthly stats
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-    const monthlyTransactions = await prisma.treasuryTransactions.findMany({
-      where: {
-        createdAt: {
-          gte: thirtyDaysAgo
-        }
-      }
-    })
+    const { data: monthlyTransactions, error } = await supabase
+      .from('dao_treasury')
+      .select('*')
+      .gte('created_at', thirtyDaysAgo.toISOString())
 
-    const monthlyRevenue = monthlyTransactions
-      .filter(t => t.transactionType === 'REVENUE')
+    const monthlyRevenue = (monthlyTransactions || [])
+      .filter(t => t.transaction_type === 'REVENUE')
       .reduce((sum, t) => sum + Number(t.amount), 0)
 
-    const monthlyExpenses = monthlyTransactions
-      .filter(t => t.transactionType === 'EXPENSE' || t.transactionType === 'GRANT')
+    const monthlyExpenses = (monthlyTransactions || [])
+      .filter(t => t.transaction_type === 'EXPENSE' || t.transaction_type === 'GRANT')
       .reduce((sum, t) => sum + Number(t.amount), 0)
 
     res.json({
@@ -69,24 +59,25 @@ router.get('/transactions', async (req: Request, res: Response) => {
     const where: any = {}
     if (type) where.transactionType = type
 
-    const transactions = await prisma.treasuryTransactions.findMany({
-      where,
-      take: parseInt(limit as string),
-      skip: parseInt(offset as string),
-      orderBy: {
-        createdAt: 'desc'
-      },
-      include: {
-        recipient: {
-          select: {
-            id: true,
-            email: true
-          }
-        }
-      }
-    })
+    const supabase = createClient()
 
-    const totalCount = await prisma.treasuryTransactions.count({ where })
+    let query = supabase
+      .from('dao_treasury')
+      .select(`*, recipient:profiles(id, email)`)
+      .order('created_at', { ascending: false })
+      .range(parseInt(offset as string), parseInt(offset as string) + parseInt(limit as string) - 1)
+
+    if (type) query = query.eq('transaction_type', type)
+
+    const { data: transactions, error } = await query
+
+    let countQuery = supabase
+      .from('dao_treasury')
+      .select('*', { count: 'exact', head: true })
+
+    if (type) countQuery = countQuery.eq('transaction_type', type)
+
+    const { count: totalCount, error: countError } = await countQuery
 
     res.json({
       transactions,
@@ -127,30 +118,30 @@ router.post('/funding-proposal', async (req: Request, res: Response) => {
     const votingEndsAt = new Date()
     votingEndsAt.setDate(votingEndsAt.getDate() + 7)
 
-    const proposal = await prisma.daoProposals.create({
-      data: {
-        creatorId: userId,
+    const supabase = createClient()
+
+    const { data: proposal, error } = await supabase
+      .from('dao_proposals')
+      .insert({
+        creator_id: userId,
         title,
         description,
-        proposalType: 'TREASURY',
-        executionData: {
+        proposal_type: 'TREASURY',
+        execution_data: {
           requestedAmount: amount,
           treasuryAllocation: true
         },
-        votingStartsAt: new Date(),
-        votingEndsAt,
+        voting_starts_at: new Date().toISOString(),
+        voting_ends_at: votingEndsAt.toISOString(),
         status: 'ACTIVE',
-        quorumRequired: 1000000
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            email: true
-          }
-        }
-      }
-    })
+        quorum_required: 1000000
+      })
+      .select(`*, creator:profiles(id, email)`)
+      .single()
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to create funding proposal' })
+    }
 
     res.json(proposal)
   } catch (error) {
@@ -167,30 +158,16 @@ router.get('/proposals', async (req: Request, res: Response) => {
     const where: any = { proposalType: 'TREASURY' }
     if (status) where.status = status
 
-    const proposals = await prisma.daoProposals.findMany({
-      where,
-      include: {
-        creator: {
-          select: {
-            id: true,
-            email: true
-          }
-        },
-        votes: {
-          include: {
-            voter: {
-              select: {
-                id: true,
-                email: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    const supabase = createClient()
+
+    let query = supabase
+      .from('dao_proposals')
+      .select(`*, creator:profiles(id, email), votes:dao_votes(*, voter:profiles(id, email))`)
+      .order('created_at', { ascending: false })
+
+    if (status) query = query.eq('status', status)
+
+    const { data: proposals, error } = await query
 
     res.json(proposals)
   } catch (error) {
@@ -222,24 +199,24 @@ router.post('/expense', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Insufficient treasury funds' })
     }
 
-    const transaction = await prisma.treasuryTransactions.create({
-      data: {
-        proposalId,
-        transactionType: 'EXPENSE',
+    const supabase = createClient()
+
+    const { data: transaction, error } = await supabase
+      .from('dao_treasury')
+      .insert({
+        proposal_id: proposalId,
+        transaction_type: 'EXPENSE',
         amount: parsedAmount,
-        recipientId,
+        recipient_id: recipientId,
         description,
         status: 'PENDING'
-      },
-      include: {
-        recipient: {
-          select: {
-            id: true,
-            email: true
-          }
-        }
-      }
-    })
+      })
+      .select(`*, recipient:profiles(id, email)`)
+      .single()
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to record treasury expense' })
+    }
 
     res.json(transaction)
   } catch (error) {
@@ -262,14 +239,22 @@ router.post('/revenue', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid amount' })
     }
 
-    const transaction = await prisma.treasuryTransactions.create({
-      data: {
-        transactionType: 'REVENUE',
+    const supabase = createClient()
+
+    const { data: transaction, error } = await supabase
+      .from('dao_treasury')
+      .insert({
+        transaction_type: 'REVENUE',
         amount: parsedAmount,
         description,
         status: 'EXECUTED'
-      }
-    })
+      })
+      .select()
+      .single()
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to record treasury revenue' })
+    }
 
     res.json(transaction)
   } catch (error) {
@@ -302,33 +287,37 @@ router.post('/distribute', async (req: Request, res: Response) => {
     const { syncService } = await import('../services/sync-service')
     const balance = await syncService.syncUserBalance(recipientId)
 
-    await prisma.tokenBalances.update({
-      where: { userId: recipientId },
-      data: {
+    const supabase = createClient()
+
+    const { error: updateError } = await supabase
+      .from('token_balances')
+      .update({
         balance: { increment: parsedAmount },
-        votingPower: { increment: parsedAmount },
-        updatedAt: new Date()
-      }
-    })
+        voting_power: { increment: parsedAmount },
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', recipientId)
+
+    if (updateError) {
+      return res.status(500).json({ error: 'Failed to update balance' })
+    }
 
     // Create treasury transaction
-    const transaction = await prisma.treasuryTransactions.create({
-      data: {
-        transactionType: 'DISTRIBUTION',
+    const { data: transaction, error: createError } = await supabase
+      .from('dao_treasury')
+      .insert({
+        transaction_type: 'DISTRIBUTION',
         amount: parsedAmount,
-        recipientId,
+        recipient_id: recipientId,
         description,
         status: 'EXECUTED'
-      },
-      include: {
-        recipient: {
-          select: {
-            id: true,
-            email: true
-          }
-        }
-      }
-    })
+      })
+      .select(`*, recipient:profiles(id, email)`)
+      .single()
+
+    if (createError) {
+      return res.status(500).json({ error: 'Failed to create transaction record' })
+    }
 
     res.json({
       success: true,
@@ -391,19 +380,19 @@ router.get('/analytics', async (req: Request, res: Response) => {
     ])
 
     const monthlyExpenses = monthlyTransactions
-      .filter(t => t.transactionType === 'EXPENSE' || t.transactionType === 'GRANT')
+      .filter(t => t.transaction_type === 'EXPENSE' || t.transaction_type === 'GRANT')
       .reduce((sum, t) => sum + Number(t.amount), 0)
 
     const monthlyRevenue = monthlyTransactions
-      .filter(t => t.transactionType === 'REVENUE')
+      .filter(t => t.transaction_type === 'REVENUE')
       .reduce((sum, t) => sum + Number(t.amount), 0)
 
     const quarterlyExpenses = quarterlyTransactions
-      .filter(t => t.transactionType === 'EXPENSE' || t.transactionType === 'GRANT')
+      .filter(t => t.transaction_type === 'EXPENSE' || t.transaction_type === 'GRANT')
       .reduce((sum, t) => sum + Number(t.amount), 0)
 
     const quarterlyRevenue = quarterlyTransactions
-      .filter(t => t.transactionType === 'REVENUE')
+      .filter(t => t.transaction_type === 'REVENUE')
       .reduce((sum, t) => sum + Number(t.amount), 0)
 
     res.json({
