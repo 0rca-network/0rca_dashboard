@@ -1,6 +1,6 @@
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import algosdk from 'algosdk'
-import { prisma } from '../index'
+import { prisma } from '../../db/schema'
 
 export class BlockchainService {
   private connection: Connection

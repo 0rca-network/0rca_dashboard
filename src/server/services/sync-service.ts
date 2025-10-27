@@ -1,7 +1,5 @@
 import { blockchainService } from './blockchain'
-import { db } from '../index'
-import { tokenBalances, daoProposals, daoVotes, treasuryTransactions, tokenDelegations, unstakingRequests } from '../../db/schema'
-import { and, eq, lt } from 'drizzle-orm'
+import { prisma } from '../../db/schema'
 
 export class SyncService {
   private intervals: NodeJS.Timeout[] = []
@@ -39,8 +37,13 @@ export class SyncService {
       await blockchainService.syncProposalData()
 
       // Update proposal statuses based on voting end times
-      const expiredProposals = await db.query.daoProposals.findMany({
-        where: and(eq(daoProposals.status, 'ACTIVE'), lt(daoProposals.votingEndsAt, new Date()))
+      const expiredProposals = await prisma.daoProposals.findMany({
+        where: {
+          status: 'ACTIVE',
+          votingEndsAt: {
+            lt: new Date()
+          }
+        }
       })
 
       for (const proposal of expiredProposals) {
@@ -53,7 +56,10 @@ export class SyncService {
           newStatus = 'FAILED'
         }
 
-        await db.update(daoProposals).set({ status: newStatus }).where(eq(daoProposals.id, proposal.id))
+        await prisma.daoProposals.update({
+          where: { id: proposal.id },
+          data: { status: newStatus }
+        })
 
         console.log(`📊 Proposal ${proposal.id} status updated to ${newStatus}`)
       }
@@ -72,11 +78,13 @@ export class SyncService {
       const usdValue = treasuryBalance * tokenPrice
 
       // Log treasury transaction (mock data for now)
-      await db.insert(treasuryTransactions).values({
-        transactionType: 'REVENUE',
-        amount: usdValue.toString(),
-        description: 'Treasury balance sync',
-        status: 'EXECUTED'
+      await prisma.treasuryTransactions.create({
+        data: {
+          transactionType: 'REVENUE',
+          amount: usdValue.toString(),
+          description: 'Treasury balance sync',
+          status: 'EXECUTED'
+        }
       })
 
       await blockchainService.syncTreasuryData()
@@ -93,24 +101,27 @@ export class SyncService {
       // This would sync token balances from the blockchain
       // For now, we'll update voting power based on staking and delegations
 
-      const allBalances = await db.query.tokenBalances.findMany()
+      const allBalances = await prisma.tokenBalances.findMany()
 
       for (const balance of allBalances) {
-        const receivedDelegations = await db.query.tokenDelegations.findMany({
-          where: eq(tokenDelegations.delegateId, balance.userId)
+        const receivedDelegations = await prisma.tokenDelegations.findMany({
+          where: { delegateId: balance.userId }
         })
-        const givenDelegations = await db.query.tokenDelegations.findMany({
-          where: eq(tokenDelegations.delegatorId, balance.userId)
+        const givenDelegations = await prisma.tokenDelegations.findMany({
+          where: { delegatorId: balance.userId }
         })
 
         const receivedSum = receivedDelegations.reduce((sum: number, d) => sum + Number(d.amount), 0)
         const givenSum = givenDelegations.reduce((sum: number, d) => sum + Number(d.amount), 0)
         const newVotingPower = Number(balance.balance) + (Number(balance.stakedBalance) * 1.5) + receivedSum - givenSum
 
-        await db.update(tokenBalances).set({
-          votingPower: newVotingPower.toString(),
-          updatedAt: new Date()
-        }).where(eq(tokenBalances.id, balance.id))
+        await prisma.tokenBalances.update({
+          where: { id: balance.id },
+          data: {
+            votingPower: newVotingPower.toString(),
+            updatedAt: new Date()
+          }
+        })
       }
 
     } catch (error) {
@@ -123,24 +134,29 @@ export class SyncService {
       // This would fetch the user's token balance from the blockchain
       // For now, we'll initialize with default values if not exists
 
-      let balance = await db.query.tokenBalances.findFirst({
-        where: eq(tokenBalances.userId, userId)
+      let balance = await prisma.tokenBalances.findFirst({
+        where: { userId }
       })
 
       if (!balance) {
-        balance = await db.insert(tokenBalances).values({
-          userId,
-          balance: '1000',
-          stakedBalance: '0',
-          votingPower: '1000'
-        }).returning().then(res => res[0])
+        balance = await prisma.tokenBalances.create({
+          data: {
+            userId,
+            balance: '1000',
+            stakedBalance: '0',
+            votingPower: '1000'
+          }
+        })
       } else if (Number(balance.votingPower) === 0) {
         // Boost zero voting power to minimum required
-        balance = await db.update(tokenBalances).set({
-          balance: '1000',
-          votingPower: '1000',
-          updatedAt: new Date()
-        }).where(eq(tokenBalances.userId, userId)).returning().then(res => res[0])
+        balance = await prisma.tokenBalances.update({
+          where: { userId },
+          data: {
+            balance: '1000',
+            votingPower: '1000',
+            updatedAt: new Date()
+          }
+        })
       }
 
       return balance
