@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { prisma } from '../index'
+import { prisma } from '../../db/schema'
 import { blockchainService } from '../services/blockchain'
 import { syncService } from '../services/sync-service'
 
@@ -14,7 +14,7 @@ router.get('/proposals', async (req: Request, res: Response) => {
     if (status) where.status = status
     if (type) where.proposalType = type
 
-    const proposals = await prisma.daoProposal.findMany({
+    const proposals = await prisma.daoProposals.findMany({
       where,
       include: {
         creator: {
@@ -51,7 +51,7 @@ router.get('/proposals/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params
 
-    const proposal = await prisma.daoProposal.findUnique({
+    const proposal = await prisma.daoProposals.findUnique({
       where: { id },
       include: {
         creator: {
@@ -102,7 +102,7 @@ router.post('/proposals', async (req: Request, res: Response) => {
     const votingEndsAt = new Date()
     votingEndsAt.setDate(votingEndsAt.getDate() + 7)
 
-    const proposal = await prisma.daoProposal.create({
+    const proposal = await prisma.daoProposals.create({
       data: {
         creatorId: userId,
         title,
@@ -152,7 +152,7 @@ router.post('/vote', async (req: Request, res: Response) => {
     }
 
     // Check if proposal is still active
-    const proposal = await prisma.daoProposal.findUnique({
+    const proposal = await prisma.daoProposals.findUnique({
       where: { id: proposalId }
     })
 
@@ -165,7 +165,7 @@ router.post('/vote', async (req: Request, res: Response) => {
     }
 
     // Check if user already voted
-    const existingVote = await prisma.daoVote.findUnique({
+    const existingVote = await prisma.daoVotes.findUnique({
       where: {
         proposalId_voterId: {
           proposalId,
@@ -182,7 +182,7 @@ router.post('/vote', async (req: Request, res: Response) => {
     const tokenBalance = await syncService.syncUserBalance(voterId)
 
     // Create vote record
-    const vote = await prisma.daoVote.create({
+    const vote = await prisma.daoVotes.create({
       data: {
         proposalId,
         voterId,
@@ -205,7 +205,7 @@ router.post('/vote', async (req: Request, res: Response) => {
         break
     }
 
-    await prisma.daoProposal.update({
+    await prisma.daoProposals.update({
       where: { id: proposalId },
       data: updateData
     })
@@ -236,10 +236,10 @@ router.get('/stats', async (req: Request, res: Response) => {
       totalVotes,
       uniqueVoters
     ] = await Promise.all([
-      prisma.daoProposal.count(),
-      prisma.daoProposal.count({ where: { status: 'ACTIVE' } }),
-      prisma.daoVote.count(),
-      prisma.daoVote.groupBy({
+      prisma.daoProposals.count(),
+      prisma.daoProposals.count({ where: { status: 'ACTIVE' } }),
+      prisma.daoVotes.count(),
+      prisma.daoVotes.groupBy({
         by: ['voterId'],
         _count: true
       })

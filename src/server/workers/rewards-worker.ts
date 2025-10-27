@@ -1,4 +1,4 @@
-import { prisma } from '../index'
+import { prisma } from '../../db/schema'
 
 export class RewardsWorker {
   private interval: NodeJS.Timeout | null = null
@@ -43,7 +43,7 @@ export class RewardsWorker {
     try {
       console.log('🧮 Calculating staking rewards...')
 
-      const stakedBalances = await prisma.tokenBalance.findMany({
+      const stakedBalances = await prisma.tokenBalances.findMany({
         where: {
           stakedBalance: {
             gt: 0
@@ -58,7 +58,7 @@ export class RewardsWorker {
         const dailyReward = balance.stakedBalance.toNumber() * dailyRewardRate
 
         // Update the balance with accrued rewards
-        await prisma.tokenBalance.update({
+        await prisma.tokenBalances.update({
           where: { id: balance.id },
           data: {
             balance: {
@@ -80,7 +80,7 @@ export class RewardsWorker {
 
   async calculateRewardsForUser(userId: string) {
     try {
-      const balance = await prisma.tokenBalance.findUnique({
+      const balance = await prisma.tokenBalances.findUnique({
         where: { userId }
       })
 
@@ -93,7 +93,7 @@ export class RewardsWorker {
       const dailyReward = balance.stakedBalance.toNumber() * dailyRewardRate
 
       // Update the balance with accrued rewards
-      await prisma.tokenBalance.update({
+      await prisma.tokenBalances.update({
         where: { id: balance.id },
         data: {
           balance: {

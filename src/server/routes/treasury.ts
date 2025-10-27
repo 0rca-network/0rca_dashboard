@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express'
-import { prisma } from '../index'
+import { prisma } from '../../db/schema'
 import { blockchainService } from '../services/blockchain'
 
 const router = Router()
@@ -12,7 +12,7 @@ router.get('/summary', async (req: Request, res: Response) => {
     const usdValue = treasuryBalance * tokenPrice
 
     // Get recent transactions
-    const recentTransactions = await prisma.treasuryTransaction.findMany({
+    const recentTransactions = await prisma.treasuryTransactions.findMany({
       take: 10,
       orderBy: {
         createdAt: 'desc'
@@ -31,7 +31,7 @@ router.get('/summary', async (req: Request, res: Response) => {
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-    const monthlyTransactions = await prisma.treasuryTransaction.findMany({
+    const monthlyTransactions = await prisma.treasuryTransactions.findMany({
       where: {
         createdAt: {
           gte: thirtyDaysAgo
@@ -69,7 +69,7 @@ router.get('/transactions', async (req: Request, res: Response) => {
     const where: any = {}
     if (type) where.transactionType = type
 
-    const transactions = await prisma.treasuryTransaction.findMany({
+    const transactions = await prisma.treasuryTransactions.findMany({
       where,
       take: parseInt(limit as string),
       skip: parseInt(offset as string),
@@ -86,7 +86,7 @@ router.get('/transactions', async (req: Request, res: Response) => {
       }
     })
 
-    const totalCount = await prisma.treasuryTransaction.count({ where })
+    const totalCount = await prisma.treasuryTransactions.count({ where })
 
     res.json({
       transactions,
@@ -118,16 +118,16 @@ router.post('/funding-proposal', async (req: Request, res: Response) => {
 
     // Check if user has enough voting power to create proposal
     const { syncService } = await import('../services/sync-service')
-    const tokenBalance = await syncService.syncUserBalance(userId)
+    const tokenBalances = await syncService.syncUserBalance(userId)
 
-    if (tokenBalance.votingPower.toNumber() < 100) {
+    if (tokenBalances.votingPower.toNumber() < 100) {
       return res.status(403).json({ error: 'Insufficient voting power to create proposal' })
     }
 
     const votingEndsAt = new Date()
     votingEndsAt.setDate(votingEndsAt.getDate() + 7)
 
-    const proposal = await prisma.daoProposal.create({
+    const proposal = await prisma.daoProposals.create({
       data: {
         creatorId: userId,
         title,
@@ -167,7 +167,7 @@ router.get('/proposals', async (req: Request, res: Response) => {
     const where: any = { proposalType: 'TREASURY' }
     if (status) where.status = status
 
-    const proposals = await prisma.daoProposal.findMany({
+    const proposals = await prisma.daoProposals.findMany({
       where,
       include: {
         creator: {
@@ -222,7 +222,7 @@ router.post('/expense', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Insufficient treasury funds' })
     }
 
-    const transaction = await prisma.treasuryTransaction.create({
+    const transaction = await prisma.treasuryTransactions.create({
       data: {
         proposalId,
         transactionType: 'EXPENSE',
@@ -262,7 +262,7 @@ router.post('/revenue', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid amount' })
     }
 
-    const transaction = await prisma.treasuryTransaction.create({
+    const transaction = await prisma.treasuryTransactions.create({
       data: {
         transactionType: 'REVENUE',
         amount: parsedAmount,
@@ -302,7 +302,7 @@ router.post('/distribute', async (req: Request, res: Response) => {
     const { syncService } = await import('../services/sync-service')
     const balance = await syncService.syncUserBalance(recipientId)
 
-    await prisma.tokenBalance.update({
+    await prisma.tokenBalances.update({
       where: { userId: recipientId },
       data: {
         balance: { increment: parsedAmount },
@@ -312,7 +312,7 @@ router.post('/distribute', async (req: Request, res: Response) => {
     })
 
     // Create treasury transaction
-    const transaction = await prisma.treasuryTransaction.create({
+    const transaction = await prisma.treasuryTransactions.create({
       data: {
         transactionType: 'DISTRIBUTION',
         amount: parsedAmount,
@@ -356,21 +356,21 @@ router.get('/analytics', async (req: Request, res: Response) => {
       totalExpenses,
       totalRevenue
     ] = await Promise.all([
-      prisma.treasuryTransaction.findMany({
+      prisma.treasuryTransactions.findMany({
         where: {
           createdAt: {
             gte: thirtyDaysAgo
           }
         }
       }),
-      prisma.treasuryTransaction.findMany({
+      prisma.treasuryTransactions.findMany({
         where: {
           createdAt: {
             gte: ninetyDaysAgo
           }
         }
       }),
-      prisma.treasuryTransaction.aggregate({
+      prisma.treasuryTransactions.aggregate({
         where: {
           transactionType: {
             in: ['EXPENSE', 'GRANT']
@@ -380,7 +380,7 @@ router.get('/analytics', async (req: Request, res: Response) => {
           amount: true
         }
       }),
-      prisma.treasuryTransaction.aggregate({
+      prisma.treasuryTransactions.aggregate({
         where: {
           transactionType: 'REVENUE'
         },

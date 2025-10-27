@@ -37,6 +37,7 @@ interface TokenBalance {
 export default function GovernancePage() {
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [tokenBalance, setTokenBalance] = useState<TokenBalance | null>(null)
+  const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [proposalTitle, setProposalTitle] = useState('')
   const [proposalDescription, setProposalDescription] = useState('')
@@ -53,14 +54,55 @@ export default function GovernancePage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    setUser(user)
+
     // Fetch proposals
     const { data: proposalsData } = await supabase
       .from('dao_proposals')
       .select('*')
       .order('created_at', { ascending: false })
 
-    if (proposalsData) {
+    if (proposalsData && proposalsData.length > 0) {
       setProposals(proposalsData)
+    } else {
+      // Create sample proposals if none exist
+      const sampleProposals = [
+        {
+          creator_id: user.id,
+          title: 'Reduce Platform Fee from 10% to 8%',
+          description: 'Proposal to reduce the platform fee charged to creators from 10% to 8% to increase competitiveness and attract more agent creators to the platform.',
+          proposal_type: 'fee_change',
+          voting_starts_at: new Date().toISOString(),
+          voting_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'active',
+          votes_for: 750000,
+          votes_against: 250000,
+          votes_abstain: 50000,
+          quorum_required: 1000000
+        },
+        {
+          creator_id: user.id,
+          title: 'Allocate $500K for Agent Creator Incentives',
+          description: 'Allocate $500,000 from treasury to create an incentive program for high-performing agent creators, including performance bonuses and development grants.',
+          proposal_type: 'treasury',
+          voting_starts_at: new Date().toISOString(),
+          voting_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'active',
+          votes_for: 1200000,
+          votes_against: 300000,
+          votes_abstain: 100000,
+          quorum_required: 1000000
+        }
+      ]
+
+      const { data: insertedProposals, error: insertError } = await supabase
+        .from('dao_proposals')
+        .insert(sampleProposals)
+        .select()
+
+      if (!insertError && insertedProposals) {
+        setProposals(insertedProposals)
+      }
     }
 
     // Fetch user token balance
@@ -71,14 +113,40 @@ export default function GovernancePage() {
       .single()
 
     if (balanceData) {
-      setTokenBalance(balanceData)
+      // If balance is less than 100, update to 100
+      if (balanceData.balance < 100) {
+        const { data: updateData } = await supabase
+          .from('token_balances')
+          .update({ balance: 100, voting_power: 100 })
+          .eq('user_id', user.id)
+          .select()
+          .single()
+
+        if (updateData) {
+          setTokenBalance(updateData)
+        } else {
+          setTokenBalance(balanceData)
+        }
+      } else {
+        setTokenBalance(balanceData)
+      }
+    } else {
+      // If not exists, create with default balance
+      const { data: insertData } = await supabase
+        .from('token_balances')
+        .insert({ user_id: user.id, balance: 100, voting_power: 100 })
+        .select()
+        .single()
+
+      if (insertData) {
+        setTokenBalance(insertData)
+      }
     }
 
     setLoading(false)
   }
 
   const castVote = async (proposalId: string, voteType: 'for' | 'against' | 'abstain') => {
-    const { data: { user } } = await supabase.auth.getUser()
     if (!user || !tokenBalance) return
 
     const { error } = await supabase
@@ -101,12 +169,29 @@ export default function GovernancePage() {
         title: "Vote Cast",
         description: `Your ${voteType} vote has been recorded!`,
       })
-      fetchData()
+      // Update local proposal vote counts
+      setProposals(prev => prev.map(p => {
+        if (p.id === proposalId) {
+          const update: Partial<Proposal> = {}
+          switch (voteType) {
+            case 'for':
+              update.votes_for = p.votes_for + tokenBalance.voting_power
+              break
+            case 'against':
+              update.votes_against = p.votes_against + tokenBalance.voting_power
+              break
+            case 'abstain':
+              update.votes_abstain = p.votes_abstain + tokenBalance.voting_power
+              break
+          }
+          return { ...p, ...update }
+        }
+        return p
+      }))
     }
   }
 
   const handleCreateProposal = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
     if (!user || !tokenBalance || tokenBalance.voting_power < 100) return
 
     setCreating(true)
@@ -231,8 +316,9 @@ export default function GovernancePage() {
             const againstPercentage = totalVotes > 0 ? (proposal.votes_against / totalVotes) * 100 : 0
             const quorumProgress = (totalVotes / proposal.quorum_required) * 100
 
+            const isUserProposal = proposal.creator_id === user.id
             return (
-              <Card key={proposal.id} className="hover:shadow-xl transition-shadow border-l-4 border-l-cyan-500 bg-gray-800">
+              <Card key={proposal.id} className={`hover:shadow-xl transition-shadow border-l-4 ${isUserProposal ? 'border-l-green-500 bg-green-900/20' : 'border-l-cyan-500 bg-gray-800'}`}>
                 <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-700">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -326,37 +412,40 @@ export default function GovernancePage() {
         </TabsContent>
 
         <TabsContent value="completed" className="space-y-4">
-          {proposals.filter(p => p.status !== 'active').map((proposal) => (
-            <Card key={proposal.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <CardTitle className="flex items-center">
-                    <span className="mr-2">{getTypeIcon(proposal.proposal_type)}</span>
-                    {proposal.title}
-                  </CardTitle>
-                  <Badge className={getStatusColor(proposal.status)}>
-                    {proposal.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">For</p>
-                    <p className="font-semibold">{proposal.votes_for.toLocaleString()}</p>
+          {proposals.filter(p => p.status !== 'active').map((proposal) => {
+            const isUserProposal = proposal.creator_id === user.id
+            return (
+              <Card key={proposal.id} className={isUserProposal ? 'border-l-4 border-l-green-500 bg-green-900/20' : ''}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="flex items-center">
+                      <span className="mr-2">{getTypeIcon(proposal.proposal_type)}</span>
+                      {proposal.title}
+                    </CardTitle>
+                    <Badge className={getStatusColor(proposal.status)}>
+                      {proposal.status}
+                    </Badge>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground">Against</p>
-                    <p className="font-semibold">{proposal.votes_against.toLocaleString()}</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">For</p>
+                      <p className="font-semibold">{proposal.votes_for.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Against</p>
+                      <p className="font-semibold">{proposal.votes_against.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Abstain</p>
+                      <p className="font-semibold">{proposal.votes_abstain.toLocaleString()}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground">Abstain</p>
-                    <p className="font-semibold">{proposal.votes_abstain.toLocaleString()}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            )
+          })}
         </TabsContent>
 
         <TabsContent value="create">

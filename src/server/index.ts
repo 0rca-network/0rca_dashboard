@@ -1,8 +1,6 @@
 import express from 'express'
 import cors from 'cors'
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import * as schema from '../db/schema'
+import { prisma } from '../db/schema'
 import { governanceRoutes } from './routes/governance'
 import { tokenRoutes } from './routes/tokens'
 import { treasuryRoutes } from './routes/treasury'
@@ -13,10 +11,8 @@ import { syncService } from './services/sync-service'
 const app = express()
 const port = process.env.PORT || 3001
 
-// Initialize Drizzle
-const connectionString = process.env.DATABASE_URL!
-const client = postgres(connectionString, { prepare: false })
-export const db = drizzle(client, { schema })
+// Initialize Prisma
+export const db = prisma
 
 // Middleware
 app.use(cors())
@@ -69,13 +65,13 @@ async function startServer() {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully')
-  await client.end()
+  await prisma.$disconnect()
   process.exit(0)
 })
 
 process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully')
-  await client.end()
+  await prisma.$disconnect()
   process.exit(0)
 })
 

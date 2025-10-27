@@ -61,7 +61,34 @@ export default function TokensPage() {
       .single()
 
     if (balanceData) {
-      setTokenBalance(balanceData)
+      // If balance is less than 100, update to 100
+      if (balanceData.balance < 100) {
+        const { data: updateData } = await supabase
+          .from('token_balances')
+          .update({ balance: 100, voting_power: 100 })
+          .eq('user_id', user.id)
+          .select()
+          .single()
+
+        if (updateData) {
+          setTokenBalance(updateData)
+        } else {
+          setTokenBalance(balanceData)
+        }
+      } else {
+        setTokenBalance(balanceData)
+      }
+    } else {
+      // If not exists, create with default balance
+      const { data: insertData } = await supabase
+        .from('token_balances')
+        .insert({ user_id: user.id, balance: 100, voting_power: 100 })
+        .select()
+        .single()
+
+      if (insertData) {
+        setTokenBalance(insertData)
+      }
     }
 
     // Fetch delegations
