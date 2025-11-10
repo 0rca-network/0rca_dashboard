@@ -2,15 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import Groq from 'groq-sdk'
 import { createClient } from '@supabase/supabase-js'
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || ''
-})
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-)
-
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.GROQ_API_KEY) {
@@ -23,11 +14,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
 
-    // Check if query is about database data
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY
+    })
+
     let contextData = ''
     const lowerMessage = message.toLowerCase()
     
-    if (lowerMessage.includes('proposal') || lowerMessage.includes('jithu')) {
+    if ((lowerMessage.includes('proposal') || lowerMessage.includes('jithu')) && 
+        process.env.NEXT_PUBLIC_SUPABASE_URL && 
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      )
+      
       const { data: proposals } = await supabase
         .from('dao_proposals')
         .select('*')
