@@ -65,7 +65,7 @@ export default function NotificationsPage() {
       case 'error':
         return <X className="h-5 w-5 text-red-500" />
       default:
-        return <Info className="h-5 w-5 text-blue-500" />
+        return <Info className="h-5 w-5 text-[#64f2d1]" />
     }
   }
 
@@ -119,7 +119,7 @@ export default function NotificationsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Unread</CardTitle>
-            <Bell className="h-4 w-4 text-blue-500" />
+            <Bell className="h-4 w-4 text-[#64f2d1]" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{unreadCount}</div>
@@ -169,7 +169,7 @@ export default function NotificationsPage() {
               <div
                 key={notification.id}
                 className={`flex items-start space-x-4 p-4 rounded-lg border ${
-                  !notification.read ? 'bg-blue-50 border-blue-200' : 'bg-background'
+                  !notification.read ? 'bg-[#64f2d1]/10 border-[#64f2d1]/30' : 'bg-background'
                 }`}
               >
                 <div className="flex-shrink-0 mt-1">
@@ -183,7 +183,7 @@ export default function NotificationsPage() {
                         {notification.type}
                       </Badge>
                       {!notification.read && (
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <div className="w-2 h-2 bg-[#64f2d1] rounded-full"></div>
                       )}
                     </div>
                   </div>

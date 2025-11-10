@@ -61,14 +61,14 @@ export default function AssistantPage() {
   }
 
   if (loading) {
-    return <div className="min-h-screen bg-gradient-to-br from-blue-900 via-cyan-800 to-blue-800 flex items-center justify-center">
+    return <div className="min-h-screen bg-gradient-to-br from-[#111827] via-[#1f2937] to-[#111827] flex items-center justify-center">
       <div className="text-white">Loading...</div>
     </div>
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-cyan-800 to-blue-800 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#111827] via-[#1f2937] to-[#111827] flex items-center justify-center p-4">
         <Card className="w-full max-w-md backdrop-blur-lg bg-white/10 border-white/20">
           <div className="p-6">
             <h1 className="text-2xl font-bold text-white mb-6 text-center">Orca Network AI</h1>
@@ -90,7 +90,7 @@ export default function AssistantPage() {
                 required
               />
               <div className="space-y-2">
-                <Button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700">
+                <Button type="submit" className="w-full bg-[#64f2d1] hover:bg-[#64f2d1]/90 text-[#111827] font-semibold">
                   Sign In
                 </Button>
                 <Button 

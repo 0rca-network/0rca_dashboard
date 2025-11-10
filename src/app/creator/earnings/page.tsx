@@ -294,7 +294,7 @@ export default function EarningsPage() {
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           transaction.type === 'payout' ? 'bg-green-100 text-green-800' :
-                          transaction.type === 'earning' ? 'bg-blue-100 text-blue-800' :
+                          transaction.type === 'earning' ? 'bg-[#64f2d1]/20 text-[#64f2d1] border border-[#64f2d1]/30' :
                           'bg-red-100 text-red-800'
                         }`}>
                           {transaction.type}

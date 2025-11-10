@@ -150,7 +150,7 @@ export function GuidedTour({ isVisible, onComplete, userRole }: GuidedTourProps)
       
       {/* Tour Popup */}
       <div
-        className="fixed z-[9999] w-80 bg-gradient-to-br from-cyan-600 to-blue-700 rounded-lg shadow-2xl border border-cyan-400/30"
+        className="fixed z-[9999] w-80 bg-gradient-to-br from-[#64f2d1] to-[#22d3ee] rounded-lg shadow-2xl border border-[#64f2d1]/30"
         style={{
           top: `${targetPosition.top}px`,
           left: `${targetPosition.left}px`,

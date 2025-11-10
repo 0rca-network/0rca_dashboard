@@ -353,67 +353,67 @@ export default function TokensPage() {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mb-4">
-          <Coins className="h-8 w-8 text-white" />
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-[#64f2d1] rounded-full mb-4 shadow-lg shadow-[#64f2d1]/20">
+          <Coins className="h-8 w-8 text-[#111827]" />
         </div>
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">ORCA Tokens</h1>
-        <p className="text-muted-foreground text-lg mt-2">Maximize your governance power and earn rewards through staking</p>
+        <h1 className="text-4xl font-bold text-text-primary">ORCA Tokens</h1>
+        <p className="text-text-secondary text-lg mt-2">Maximize your governance power and earn rewards through staking</p>
       </div>
 
       {/* Token Overview */}
       {tokenBalance && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-cyan-500/20 hover:shadow-xl transition-all">
+          <Card className="bg-surface border-border-accent hover:shadow-xl transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">ORCA Balance</CardTitle>
-              <div className="p-2 bg-cyan-600 rounded-lg">
-                <Coins className="h-4 w-4 text-white" />
+              <CardTitle className="text-sm font-medium text-text-primary">ORCA Balance</CardTitle>
+              <div className="p-2 bg-[#64f2d1] rounded-lg">
+                <Coins className="h-4 w-4 text-[#111827]" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">{tokenBalance.balance.toLocaleString()}</div>
-              <p className="text-sm text-cyan-400 font-medium">Available tokens</p>
+              <div className="text-3xl font-bold text-text-primary">{tokenBalance.balance.toLocaleString()}</div>
+              <p className="text-sm text-accent-tertiary font-medium">Available tokens</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-cyan-500/20 hover:shadow-xl transition-all">
+          <Card className="bg-surface border-border-accent hover:shadow-xl transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Staked</CardTitle>
-              <div className="p-2 bg-cyan-600 rounded-lg">
-                <Lock className="h-4 w-4 text-white" />
+              <CardTitle className="text-sm font-medium text-text-primary">Staked</CardTitle>
+              <div className="p-2 bg-[#64f2d1] rounded-lg">
+                <Lock className="h-4 w-4 text-[#111827]" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">{tokenBalance.staked_balance.toLocaleString()}</div>
-              <p className="text-sm text-green-400 font-medium">Earning 8% APY</p>
+              <div className="text-3xl font-bold text-text-primary">{tokenBalance.staked_balance.toLocaleString()}</div>
+              <p className="text-sm text-success font-medium">Earning 8% APY</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-cyan-500/20 hover:shadow-xl transition-all">
+          <Card className="bg-surface border-border-accent hover:shadow-xl transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Voting Power</CardTitle>
-              <div className="p-2 bg-cyan-600 rounded-lg">
-                <TrendingUp className="h-4 w-4 text-white" />
+              <CardTitle className="text-sm font-medium text-text-primary">Voting Power</CardTitle>
+              <div className="p-2 bg-[#64f2d1] rounded-lg">
+                <TrendingUp className="h-4 w-4 text-[#111827]" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">{tokenBalance.voting_power.toLocaleString()}</div>
-              <p className="text-sm text-cyan-400 font-medium">Governance weight</p>
+              <div className="text-3xl font-bold text-text-primary">{tokenBalance.voting_power.toLocaleString()}</div>
+              <p className="text-sm text-accent-tertiary font-medium">Governance weight</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-cyan-500/20 hover:shadow-xl transition-all">
+          <Card className="bg-surface border-border-accent hover:shadow-xl transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white">Total Value</CardTitle>
-              <div className="p-2 bg-cyan-600 rounded-lg">
-                <ArrowUpDown className="h-4 w-4 text-white" />
+              <CardTitle className="text-sm font-medium text-text-primary">Total Value</CardTitle>
+              <div className="p-2 bg-[#64f2d1] rounded-lg">
+                <ArrowUpDown className="h-4 w-4 text-[#111827]" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">
+              <div className="text-3xl font-bold text-text-primary">
                 {(tokenBalance.balance + tokenBalance.staked_balance).toLocaleString()}
               </div>
-              <p className="text-sm text-cyan-400 font-medium">All tokens owned</p>
+              <p className="text-sm text-accent-tertiary font-medium">All tokens owned</p>
             </CardContent>
           </Card>
         </div>
@@ -428,15 +428,15 @@ export default function TokensPage() {
 
         <TabsContent value="stake" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="hover:shadow-xl transition-shadow border-l-4 border-l-cyan-500 bg-gray-800">
-              <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-700">
-                <CardTitle className="flex items-center text-white">
-                  <div className="p-2 bg-cyan-600 rounded-lg mr-3">
-                    <Lock className="h-5 w-5 text-white" />
+            <Card className="hover:shadow-xl transition-shadow border-l-4 border-l-accent-tertiary bg-surface">
+              <CardHeader className="bg-surface-hover">
+                <CardTitle className="flex items-center text-text-primary">
+                  <div className="p-2 bg-[#64f2d1] rounded-lg mr-3">
+                    <Lock className="h-5 w-5 text-[#111827]" />
                   </div>
                   Stake Tokens
                 </CardTitle>
-                <CardDescription className="text-gray-300">
+                <CardDescription className="text-text-secondary">
                   Stake ORCA tokens to earn 8% APY and increase voting power by 1.5x
                 </CardDescription>
               </CardHeader>
@@ -456,7 +456,8 @@ export default function TokensPage() {
                 </div>
                 <Button 
                   onClick={handleStake} 
-                  className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 shadow-lg" 
+                  variant="default"
+                  className="w-full" 
                   disabled={!stakeAmount}
                 >
                   <Lock className="mr-2 h-4 w-4" />
@@ -470,15 +471,15 @@ export default function TokensPage() {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-xl transition-shadow border-l-4 border-l-cyan-500 bg-gray-800">
-              <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-700">
-                <CardTitle className="flex items-center text-white">
-                  <div className="p-2 bg-cyan-600 rounded-lg mr-3">
-                    <TrendingUp className="h-5 w-5 text-white" />
+            <Card className="hover:shadow-xl transition-shadow border-l-4 border-l-accent-tertiary bg-surface">
+              <CardHeader className="bg-surface-hover">
+                <CardTitle className="flex items-center text-text-primary">
+                  <div className="p-2 bg-[#64f2d1] rounded-lg mr-3">
+                    <TrendingUp className="h-5 w-5 text-[#111827]" />
                   </div>
                   Staking Rewards
                 </CardTitle>
-                <CardDescription className="text-gray-300">Your current staking performance and earnings</CardDescription>
+                <CardDescription className="text-text-secondary">Your current staking performance and earnings</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">

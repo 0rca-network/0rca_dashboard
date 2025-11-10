@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "../../dist/mcp",
+    "noEmit": false,
+    "isolatedModules": false
+  },
+  "include": ["./index.ts"],
+  "exclude": []
+}

@@ -198,12 +198,12 @@ export default function HistoryPage() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 border rounded-md"
+                  className="px-3 py-2 rounded-md bg-[#64f2d1] text-[#111827] font-semibold border-none"
                 >
-                  <option value="all">All Status</option>
-                  <option value="completed">Completed</option>
-                  <option value="failed">Failed</option>
-                  <option value="running">Running</option>
+                  <option value="all" className="bg-surface text-text-primary">All Status</option>
+                  <option value="completed" className="bg-surface text-text-primary">Completed</option>
+                  <option value="failed" className="bg-surface text-text-primary">Failed</option>
+                  <option value="running" className="bg-surface text-text-primary">Running</option>
                 </select>
               </div>
 
@@ -340,7 +340,7 @@ export default function HistoryPage() {
                       return (
                         <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                           <div className="flex items-center space-x-3">
-                            <Bot className="h-8 w-8 text-blue-500" />
+                            <Bot className="h-8 w-8 text-[#64f2d1]" />
                             <div>
                               <h4 className="font-medium">{agent}</h4>
                               <p className="text-sm text-muted-foreground">Agent #{index + 1}</p>

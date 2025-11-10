@@ -228,7 +228,7 @@ export default function OrchestratorPage() {
                   <p className="font-medium mb-2">Agents Used:</p>
                   <div className="flex flex-wrap gap-2">
                     {executionResult.results.agents_used.map((agent: string, index: number) => (
-                      <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                      <span key={index} className="px-2 py-1 bg-[#64f2d1]/20 text-[#64f2d1] rounded-full text-sm border border-[#64f2d1]/30">
                         {agent}
                       </span>
                     ))}
@@ -274,7 +274,7 @@ export default function OrchestratorPage() {
                    onClick={() => setGoal(example.example)}>
                 <h3 className="font-medium mb-2">{example.title}</h3>
                 <p className="text-sm text-muted-foreground mb-2">{example.description}</p>
-                <p className="text-xs text-blue-600">Click to use this example</p>
+                <p className="text-xs text-[#64f2d1]">Click to use this example</p>
               </div>
             ))}
           </div>

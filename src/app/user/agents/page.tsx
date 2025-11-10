@@ -159,10 +159,10 @@ export default function AgentDiscoveryPage() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-3 py-2 border rounded-md"
+                className="px-3 py-2 rounded-md bg-surface border-border text-text-primary"
               >
                 {categories.map(category => (
-                  <option key={category} value={category}>
+                  <option key={category} value={category} className="bg-surface text-text-primary">
                     {category === 'all' ? 'All Categories' : category}
                   </option>
                 ))}
@@ -170,12 +170,12 @@ export default function AgentDiscoveryPage() {
               <select
                 value={priceFilter}
                 onChange={(e) => setPriceFilter(e.target.value)}
-                className="px-3 py-2 border rounded-md"
+                className="px-3 py-2 rounded-md bg-surface border-border text-text-primary"
               >
-                <option value="all">All Prices</option>
-                <option value="low">Low (≤$0.001)</option>
-                <option value="medium">Medium ($0.001-$0.01)</option>
-                <option value="high">High ({'>'}$0.01)</option>
+                <option value="all" className="bg-surface text-text-primary">All Prices</option>
+                <option value="low" className="bg-surface text-text-primary">Low (≤$0.001)</option>
+                <option value="medium" className="bg-surface text-text-primary">Medium ($0.001-$0.01)</option>
+                <option value="high" className="bg-surface text-text-primary">High ({'>'}$0.01)</option>
               </select>
             </div>
           </div>
@@ -194,7 +194,7 @@ export default function AgentDiscoveryPage() {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-2">
-                    <Bot className="h-6 w-6 text-blue-500" />
+                    <Bot className="h-6 w-6 text-[#64f2d1]" />
                     <div>
                       <CardTitle className="text-lg">{agent.name}</CardTitle>
                       <Badge variant="secondary">{agent.category}</Badge>
@@ -224,7 +224,7 @@ export default function AgentDiscoveryPage() {
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center mb-1">
-                        <Clock className="h-4 w-4 text-blue-500" />
+                        <Clock className="h-4 w-4 text-[#64f2d1]" />
                       </div>
                       <p className="font-medium">{speed}ms</p>
                       <p className="text-muted-foreground text-xs">avg speed</p>
@@ -300,7 +300,7 @@ export default function AgentDiscoveryPage() {
                   <div>
                     <h3 className="font-medium">{category.name}</h3>
                     <p className="text-sm text-muted-foreground">{category.description}</p>
-                    <p className="text-xs text-blue-600">{category.count} agents available</p>
+                    <p className="text-xs text-[#64f2d1]">{category.count} agents available</p>
                   </div>
                 </div>
               </div>

@@ -287,10 +287,8 @@ export function StandaloneAIAssistant({
       created_at: new Date()
     }
     
-    // Save to database first
     await saveChatHistoryToDB(newSession)
     
-    // Then update local state
     const updatedSessions = [newSession, ...chatSessions]
     setChatSessions(updatedSessions)
     setCurrentSessionId(newSession.id)
@@ -329,7 +327,6 @@ export function StandaloneAIAssistant({
     e.stopPropagation()
     
     try {
-      // Delete from database
       const { error } = await supabase
         .from('chat_sessions')
         .delete()
@@ -337,7 +334,6 @@ export function StandaloneAIAssistant({
 
       if (error) throw error
 
-      // Update local state
       const updatedSessions = chatSessions.filter(s => s.id !== sessionId)
       setChatSessions(updatedSessions)
       
@@ -363,113 +359,6 @@ export function StandaloneAIAssistant({
     scrollToBottom()
   }, [messages])
 
-  const generateAIResponse = (userMessage: string): string => {
-    const lowerMessage = userMessage.toLowerCase().trim()
-    
-    // Greetings
-    if (lowerMessage === 'hello' || lowerMessage === 'hi' || lowerMessage === 'hey' || lowerMessage.startsWith('hello') || lowerMessage.startsWith('hi ') || lowerMessage.startsWith('hey ')) {
-      return "Hi there! 👋 I'm your Orca Network AI assistant. I can help you with agent creation, orchestrator usage, wallet management, earnings tracking, and all platform features. What would you like to explore?"
-    }
-    
-    // Platform Overview
-    if (lowerMessage.includes('what is orca') || lowerMessage.includes('about orca') || lowerMessage.includes('orca network')) {
-      return "Orca Network is a comprehensive AI agent marketplace built with Next.js 14, TypeScript, and Supabase. It's a full-stack platform where creators can deploy and monetize AI agents, while users can discover and execute complex tasks using agent compositions. The platform features role-based dashboards, real-time analytics, wallet management, and a sophisticated orchestration system."
-    }
-    
-    // User Roles
-    if (lowerMessage.includes('role') || lowerMessage.includes('creator') || lowerMessage.includes('user')) {
-      return "Orca Network has two main user roles: 1) **Creators** - Deploy and manage AI agents, track performance analytics, monitor earnings and payouts, configure pricing and API endpoints. 2) **Users** - Execute tasks via the Orchestrator Console, manage wallet and budgets, discover agents in the marketplace, view execution history with detailed breakdowns. You can switch roles anytime in Settings."
-    }
-    
-    // Agent Creation & Management
-    if (lowerMessage.includes('create agent') || lowerMessage.includes('deploy agent') || lowerMessage.includes('my agents')) {
-      return "To create an agent: 1) Switch to Creator role in Settings, 2) Go to 'My Agents' section, 3) Click 'Create Agent', 4) Configure: name, description, category, pricing (per-token/per-request), API endpoint, max concurrent requests. Your agent will be available in the marketplace. You can monitor performance with metrics like success rate, response time, revenue, and efficiency rankings."
-    }
-    
-    // Orchestrator Console
-    if (lowerMessage.includes('orchestrator') || lowerMessage.includes('execute') || lowerMessage.includes('task')) {
-      return "The Orchestrator Console is where users execute complex tasks: 1) Enter your goal/query in the text area, 2) Set max budget with the slider, 3) Click 'Run' to start execution. The system automatically selects optimal agents, shows real-time progress, and provides detailed results including token usage, costs, execution time, and agent breakdown. All executions are saved in your history."
-    }
-    
-    // Wallet & Billing
-    if (lowerMessage.includes('wallet') || lowerMessage.includes('balance') || lowerMessage.includes('payment') || lowerMessage.includes('billing')) {
-      return "Wallet Management features: 1) **Balance** - Add funds via credit card, view current balance, 2) **Budget Control** - Set monthly spending limits, get alerts at 80% usage, 3) **Analytics** - Track spending trends, category breakdowns, cost efficiency, 4) **Transactions** - Complete history of top-ups and executions. New users start with $100 balance."
-    }
-    
-    // Earnings & Revenue
-    if (lowerMessage.includes('earnings') || lowerMessage.includes('revenue') || lowerMessage.includes('payout') || lowerMessage.includes('money')) {
-      return "Creator Earnings System: 1) **Revenue Sources** - Direct agent usage (70%) and composition usage (30%), 2) **Platform Fee** - 10% deducted from all earnings, 3) **Analytics** - Monthly trends, revenue breakdown, efficiency metrics, 4) **Payouts** - Track pending amounts, transaction history, bank transfer options. Revenue is calculated based on token usage and your pricing model."
-    }
-    
-    // Agent Discovery
-    if (lowerMessage.includes('discover') || lowerMessage.includes('marketplace') || lowerMessage.includes('find agent')) {
-      return "Agent Discovery features: 1) **Browse** - Grid view of all available agents with ratings and metrics, 2) **Filters** - By category (NLP, Vision, Analytics, Development, Content, Finance), price range, speed, rating, 3) **Details** - Each agent shows pricing, average response time, success rate, and creator info, 4) **Categories** - Organized by functionality with agent counts and descriptions."
-    }
-    
-    // Execution History
-    if (lowerMessage.includes('history') || lowerMessage.includes('past') || lowerMessage.includes('previous')) {
-      return "Execution History provides: 1) **Complete Log** - All past executions with filtering by status, date, cost, 2) **Detailed View** - Goal, status, token usage, total cost, duration, results, 3) **Agent Breakdown** - Visual tree showing which agents were used, their individual costs, tokens, time, and quality scores, 4) **Search & Filter** - Find specific executions quickly."
-    }
-    
-    // Analytics & Insights
-    if (lowerMessage.includes('analytics') || lowerMessage.includes('insights') || lowerMessage.includes('performance')) {
-      return "Analytics Dashboard includes: 1) **Performance Metrics** - Success rate, average response time, total requests, unique users, 2) **Revenue Analytics** - Monthly trends, cost efficiency, revenue sources, 3) **Usage Patterns** - Peak hours, request volume, token consumption, 4) **Agent Performance** - Individual agent metrics, efficiency rankings, optimization suggestions."
-    }
-    
-    // Technical Stack
-    if (lowerMessage.includes('technology') || lowerMessage.includes('tech stack') || lowerMessage.includes('built with')) {
-      return "Orca Network is built with: **Frontend** - Next.js 14 (App Router), React 18, TypeScript, **Styling** - Tailwind CSS, Shadcn/UI components, **Backend** - Supabase (PostgreSQL, Auth, Realtime), **Charts** - Recharts, **Deployment** - Vercel, **Features** - Row Level Security, React Server Components, real-time updates, responsive design, dark mode support."
-    }
-    
-    // Database & Security
-    if (lowerMessage.includes('database') || lowerMessage.includes('security') || lowerMessage.includes('data')) {
-      return "Database & Security: 1) **Tables** - profiles, agents, executions, earnings, transactions with proper relationships, 2) **Security** - Row Level Security (RLS) policies, user authentication via Supabase Auth, 3) **Data Protection** - Users can only access their own data, creators manage their agents, secure API endpoints, 4) **Backup** - Automatic Supabase backups and point-in-time recovery."
-    }
-    
-    // Settings & Configuration
-    if (lowerMessage.includes('settings') || lowerMessage.includes('profile') || lowerMessage.includes('account')) {
-      return "Settings & Account Management: 1) **Profile** - Update email, switch between Creator/User roles, 2) **Notifications** - Configure alerts for executions, budget limits, new agents, weekly summaries, 3) **Wallet** - Connect payment methods, manage billing, 4) **Security** - 2FA, password changes, API keys, session management, 5) **Theme** - Dark/light mode toggle."
-    }
-    
-    // Notifications
-    if (lowerMessage.includes('notification') || lowerMessage.includes('alert')) {
-      return "Notification System: 1) **Types** - Execution completions, budget alerts, new agent releases, weekly summaries, 2) **Delivery** - In-app toasts, email notifications (configurable), 3) **Management** - Mark as read, dismiss, notification preferences in Settings, 4) **Categories** - Success (green), warnings (yellow), errors (red), info (blue) with appropriate icons and actions."
-    }
-    
-    // Pricing & Business Model
-    if (lowerMessage.includes('pricing') || lowerMessage.includes('cost') || lowerMessage.includes('price')) {
-      return "Pricing Model: 1) **For Users** - Pay per token usage, set monthly budgets, transparent cost breakdown, 2) **For Creators** - Set your own pricing (per-token or per-request), keep 90% of revenue, 3) **Platform Fee** - 10% on all transactions, 4) **Free Tier** - $100 starting balance for new users, 5) **Payment** - Credit card, future crypto wallet integration planned."
-    }
-    
-    // Getting Started
-    if (lowerMessage.includes('start') || lowerMessage.includes('begin') || lowerMessage.includes('first time')) {
-      return "Getting Started Guide: 1) **Sign Up** - Create account with email verification, 2) **Choose Role** - User (consume agents) or Creator (build agents), 3) **For Users** - Explore Agent Discovery, try Orchestrator with sample tasks, manage wallet, 4) **For Creators** - Create your first agent, set pricing, monitor performance, 5) **Navigation** - Use sidebar to access all features, switch roles anytime in Settings."
-    }
-    
-    // Troubleshooting
-    if (lowerMessage.includes('problem') || lowerMessage.includes('issue') || lowerMessage.includes('error') || lowerMessage.includes('help')) {
-      return "Common Solutions: 1) **Login Issues** - Check email verification, reset password if needed, 2) **Agent Creation** - Ensure valid API endpoint, proper pricing format, 3) **Execution Failures** - Check wallet balance, verify agent availability, 4) **Performance** - Clear browser cache, check internet connection, 5) **Support** - Use Developer Dashboard for detailed logs and system status."
-    }
-    
-    // Features & Capabilities
-    if (lowerMessage.includes('feature') || lowerMessage.includes('capability') || lowerMessage.includes('can do')) {
-      return "Key Features: 1) **Agent Marketplace** - Discover, deploy, and monetize AI agents, 2) **Orchestration** - Complex task execution with budget control, 3) **Real-time Analytics** - Performance tracking and insights, 4) **Wallet Management** - Balance, budgets, spending analytics, 5) **Role-based Dashboards** - Tailored experiences for creators and users, 6) **Chat History** - Persistent conversations with this AI assistant, 7) **Dark Mode** - Theme switching support."
-    }
-    
-    // Thank you responses
-    if (lowerMessage.includes('thank') || lowerMessage.includes('thanks')) {
-      return "You're welcome! I'm here to help with any Orca Network questions. Feel free to ask about agents, orchestrator, wallet, earnings, or any other platform features! 🚀"
-    }
-    
-    // Goodbye responses
-    if (lowerMessage.includes('bye') || lowerMessage.includes('goodbye') || lowerMessage.includes('see you')) {
-      return "Goodbye! Thanks for using Orca Network. Come back anytime if you need help with the platform! 👋"
-    }
-    
-    // Default response for unmatched queries
-    return `I understand you're asking about "${userMessage}". As your Orca Network AI assistant, I can help with: • Agent creation & management • Orchestrator usage • Wallet & billing • Earnings tracking • Marketplace discovery • Analytics • Settings • Troubleshooting. Could you be more specific about what you'd like to know?`
-  }
-
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return
 
@@ -488,27 +377,60 @@ export function StandaloneAIAssistant({
 
     const newMessages = [...messages, userMessage]
     setMessages(newMessages)
+    setInputValue('')
 
-    setTimeout(async () => {
+    try {
+      // Prepare conversation history for context
+      const conversationHistory = messages.slice(-5).map(msg => ({
+        role: msg.isUser ? 'user' : 'assistant',
+        content: msg.text
+      }))
+
+      // Call Grok AI API
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: inputValue,
+          conversationHistory
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response')
+      }
+
+      const data = await response.json()
+      
       const aiResponse: Message = {
         id: crypto.randomUUID(),
-        text: generateAIResponse(inputValue),
+        text: data.response,
         isUser: false,
         timestamp: new Date()
       }
+      
       const finalMessages = [...newMessages, aiResponse]
       setMessages(finalMessages)
       await updateCurrentSession(finalMessages)
       
-      if ('speechSynthesis' in window) {
+      if ('speechSynthesis' in window && isSpeaking) {
         const utterance = new SpeechSynthesisUtterance(aiResponse.text)
         utterance.onstart = () => setIsSpeaking(true)
         utterance.onend = () => setIsSpeaking(false)
         speechSynthesis.speak(utterance)
       }
-    }, 1000)
-
-    setInputValue('')
+    } catch (error) {
+      console.error('Error getting AI response:', error)
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        text: 'Sorry, I encountered an error. Please try again.',
+        isUser: false,
+        timestamp: new Date()
+      }
+      const finalMessages = [...newMessages, errorMessage]
+      setMessages(finalMessages)
+      await updateCurrentSession(finalMessages)
+    }
   }
 
   const toggleListening = () => {
@@ -547,7 +469,7 @@ export function StandaloneAIAssistant({
               
               <div className="mb-4">
                 <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-10 h-10 bg-cyan-600 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-[#64f2d1] rounded-full flex items-center justify-center">
                     <User className="h-5 w-5 text-white" />
                   </div>
                   <div className="flex-1">
@@ -570,7 +492,7 @@ export function StandaloneAIAssistant({
                             setIsEditingName(false)
                           }}
                           size="sm"
-                          className="bg-cyan-600 hover:bg-cyan-700 h-8 px-2"
+                          className="bg-[#64f2d1] hover:bg-[#64f2d1]/90 text-[#111827] font-semibold h-8 px-2"
                         >
                           Save
                         </Button>
@@ -600,14 +522,14 @@ export function StandaloneAIAssistant({
                     alert(`Email: ${userEmail}\nProvider: ${authProvider === 'email' ? 'Email/Password' : authProvider.charAt(0).toUpperCase() + authProvider.slice(1)}`)
                   }}
                   variant="ghost"
-                  className="w-full justify-start text-white hover:bg-white/20 h-8 text-sm"
+                  className="w-full justify-start text-white hover:bg-[#64f2d1]/50 h-8 text-sm"
                 >
                   <User className="h-3 w-3 mr-2" />
                   User Details
                 </Button>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start text-white hover:bg-white/20 h-8 text-sm"
+                  className="w-full justify-start text-white hover:bg-[#64f2d1]/20 h-8 text-sm"
                 >
                   <CreditCard className="h-3 w-3 mr-2" />
                   Plan Upgrade
@@ -626,7 +548,7 @@ export function StandaloneAIAssistant({
         </div>
       )}
       
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-cyan-800 to-blue-800 flex">
+    <div className="min-h-screen bg-gradient-to-br from-[#111827] via-[#1f2937] to-[#111827] flex">
       
       {/* Chat History Sidebar */}
       <div className={`${isCollapsed ? 'w-16' : 'w-80'} backdrop-blur-lg bg-white/10 border-r border-white/20 shadow-2xl transition-all duration-300 relative`}>
@@ -654,7 +576,7 @@ export function StandaloneAIAssistant({
                     onClick={createNewSession}
                     size="sm"
                     variant="ghost"
-                    className="w-full text-white hover:bg-cyan-600/50"
+                    className="w-full text-white hover:bg-[#64f2d1]/50"
                     title="New Chat"
                   >
                     <MessageSquare className="h-4 w-4" />
@@ -677,7 +599,7 @@ export function StandaloneAIAssistant({
                       onClick={onDeveloperMode}
                       size="sm"
                       variant="ghost"
-                      className="w-full text-white hover:bg-blue-600/50"
+                      className="w-full text-white hover:bg-[#64f2d1]/20"
                       title="Developer Dashboard"
                     >
                       <Code className="h-4 w-4" />
@@ -703,7 +625,7 @@ export function StandaloneAIAssistant({
                 {/* New Chat Button */}
                 <Button
                   onClick={createNewSession}
-                  className="w-full mb-4 bg-cyan-600 hover:bg-cyan-700"
+                  className="w-full mb-4 bg-[#64f2d1] hover:bg-[#64f2d1]/90 text-[#111827] font-semibold"
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
                   New Chat
@@ -717,7 +639,7 @@ export function StandaloneAIAssistant({
                       onClick={() => loadSession(session.id)}
                       className={`p-3 rounded-lg cursor-pointer transition-colors group relative ${
                         currentSessionId === session.id 
-                          ? 'bg-cyan-600/50' 
+                          ? 'bg-[#64f2d1]/50' 
                           : 'bg-white/10 hover:bg-white/20'
                       }`}
                     >
@@ -748,7 +670,7 @@ export function StandaloneAIAssistant({
                   {showDeveloperButton && onDeveloperMode && (
                     <Button
                       onClick={onDeveloperMode}
-                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      className="w-full bg-[#64f2d1] hover:bg-[#64f2d1]/90 text-[#111827] font-semibold"
                     >
                       <Code className="h-4 w-4 mr-2" />
                       Developer Dashboard
@@ -781,7 +703,7 @@ export function StandaloneAIAssistant({
             {/* User Profile */}
             <div className="mb-6">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-cyan-600 rounded-full flex items-center justify-center">
+                <div className="w-12 h-12 bg-[#64f2d1] rounded-full flex items-center justify-center">
                   <User className="h-6 w-6 text-white" />
                 </div>
                 <div className="flex-1">
@@ -804,7 +726,7 @@ export function StandaloneAIAssistant({
                           setIsEditingName(false)
                         }}
                         size="sm"
-                        className="bg-cyan-600 hover:bg-cyan-700"
+                        className="bg-[#64f2d1] hover:bg-[#64f2d1]/90 text-[#111827] font-semibold"
                       >
                         Save
                       </Button>
@@ -847,7 +769,7 @@ export function StandaloneAIAssistant({
                 <Button
                   onClick={onDeveloperMode}
                   variant="ghost"
-                  className="w-full justify-start text-white hover:bg-blue-600/20"
+                  className="w-full justify-start text-white hover:bg-[#64f2d1]/20"
                 >
                   <Code className="h-4 w-4 mr-3" />
                   Developer Dashboard
@@ -878,7 +800,7 @@ export function StandaloneAIAssistant({
                 <img src={globeImageUrl} alt="Globe" className="w-32 h-32 mx-auto" />
               </div>
             )}
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 bg-gradient-to-r from-[#64f2d1] to-[#22d3ee] bg-clip-text text-transparent">
               {title}
             </h1>
             <p className="text-xl text-cyan-200 mb-8">{subtitle}</p>
@@ -892,7 +814,7 @@ export function StandaloneAIAssistant({
                 {messages.length === 0 && (
                   <div className="text-center text-white/70 py-8">
                     <p>Welcome! Ask me anything about Orca Network.</p>
-                    <p className="text-sm mt-2">Try: "How do I create an agent?" or "What is the Orchestrator?"</p>
+                    <p className="text-sm mt-2">Powered by Grok AI</p>
                   </div>
                 )}
                 
@@ -904,7 +826,7 @@ export function StandaloneAIAssistant({
                     <div
                       className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                         message.isUser
-                          ? 'bg-cyan-600 text-white'
+                          ? 'bg-[#64f2d1] text-[#111827] font-semibold'
                           : 'bg-white/20 text-white backdrop-blur-sm'
                       }`}
                     >
@@ -927,7 +849,7 @@ export function StandaloneAIAssistant({
                     <Switch
                       checked={autoAIAgent}
                       onCheckedChange={setAutoAIAgent}
-                      className="data-[state=checked]:bg-cyan-600 data-[state=unchecked]:bg-white/20 scale-75"
+                      className="data-[state=checked]:bg-[#64f2d1] data-[state=unchecked]:bg-white/20 scale-75"
                     />
                   </div>
                   {autoAIAgent && (
@@ -973,7 +895,7 @@ export function StandaloneAIAssistant({
                 
                 <Button
                   onClick={handleSendMessage}
-                  className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                  className="bg-[#64f2d1] hover:bg-[#64f2d1]/90 text-[#111827] font-semibold"
                 >
                   <Send className="h-4 w-4" />
                 </Button>

@@ -307,7 +307,7 @@ export default function SettingsPage() {
                 <h4 className="font-medium mb-2">Current Payment Method</h4>
                 <div className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                    <div className="w-8 h-8 bg-[#64f2d1]/20 rounded flex items-center justify-center">
                       💳
                     </div>
                     <div>

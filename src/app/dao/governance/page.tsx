@@ -234,7 +234,7 @@ export default function GovernancePage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-blue-500'
+      case 'active': return 'bg-[#64f2d1]'
       case 'passed': return 'bg-green-500'
       case 'failed': return 'bg-red-500'
       case 'executed': return 'bg-purple-500'
@@ -259,20 +259,20 @@ export default function GovernancePage() {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mb-4">
-          <Vote className="h-8 w-8 text-white" />
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-[#64f2d1] rounded-full mb-4 shadow-lg shadow-[#64f2d1]/20">
+          <Vote className="h-8 w-8 text-[#111827]" />
         </div>
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">DAO Governance</h1>
-        <p className="text-muted-foreground text-lg mt-2">Shape the future of Orca Network through community governance</p>
+        <h1 className="text-4xl font-bold text-text-primary">DAO Governance</h1>
+        <p className="text-text-secondary text-lg mt-2">Shape the future of Orca Network through community governance</p>
       </div>
 
       {/* Token Balance Card */}
       {tokenBalance && (
-        <Card className="bg-gradient-to-r from-gray-800 to-gray-900 border-cyan-500/20">
+        <Card className="bg-surface border-border-accent">
           <CardHeader>
-            <CardTitle className="flex items-center text-white">
-              <div className="p-2 bg-cyan-600 rounded-lg mr-3">
-                <Vote className="h-5 w-5 text-white" />
+            <CardTitle className="flex items-center text-text-primary">
+              <div className="p-2 bg-[#64f2d1] rounded-lg mr-3">
+                <Vote className="h-5 w-5 text-[#111827]" />
               </div>
               Your Voting Power
             </CardTitle>
@@ -280,21 +280,21 @@ export default function GovernancePage() {
           <CardContent>
             <div className="grid grid-cols-3 gap-6">
               <div className="text-center">
-                <div className="p-3 bg-gray-700 rounded-lg shadow-sm mb-2">
-                  <p className="text-sm text-gray-300 mb-1">ORCA Balance</p>
-                  <p className="text-3xl font-bold text-white">{tokenBalance.balance.toLocaleString()}</p>
+                <div className="p-3 bg-surface-hover rounded-lg shadow-sm mb-2">
+                  <p className="text-sm text-text-secondary mb-1">ORCA Balance</p>
+                  <p className="text-3xl font-bold text-text-primary">{tokenBalance.balance.toLocaleString()}</p>
                 </div>
               </div>
               <div className="text-center">
-                <div className="p-3 bg-gray-700 rounded-lg shadow-sm mb-2">
-                  <p className="text-sm text-gray-300 mb-1">Staked</p>
-                  <p className="text-3xl font-bold text-cyan-400">{tokenBalance.staked_balance.toLocaleString()}</p>
+                <div className="p-3 bg-surface-hover rounded-lg shadow-sm mb-2">
+                  <p className="text-sm text-text-secondary mb-1">Staked</p>
+                  <p className="text-3xl font-bold text-accent-secondary">{tokenBalance.staked_balance.toLocaleString()}</p>
                 </div>
               </div>
               <div className="text-center">
-                <div className="p-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg shadow-sm mb-2">
-                  <p className="text-sm text-cyan-100 mb-1">Voting Power</p>
-                  <p className="text-3xl font-bold text-white">{tokenBalance.voting_power.toLocaleString()}</p>
+                <div className="p-3 bg-[#64f2d1] rounded-lg shadow-lg shadow-[#64f2d1]/20 mb-2">
+                  <p className="text-sm text-[#111827] mb-1 font-semibold">Voting Power</p>
+                  <p className="text-3xl font-bold text-[#111827]">{tokenBalance.voting_power.toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -318,17 +318,17 @@ export default function GovernancePage() {
 
             const isUserProposal = proposal.creator_id === user.id
             return (
-              <Card key={proposal.id} className={`hover:shadow-xl transition-shadow border-l-4 ${isUserProposal ? 'border-l-green-500 bg-green-900/20' : 'border-l-cyan-500 bg-gray-800'}`}>
-                <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-700">
+              <Card key={proposal.id} className={`hover:shadow-xl transition-shadow border-l-4 ${isUserProposal ? 'border-l-success bg-success/10' : 'border-l-accent-tertiary bg-surface'}`}>
+                <CardHeader className="bg-surface-hover">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="flex items-center text-lg text-white">
-                        <div className="p-2 bg-cyan-600 rounded-lg mr-3">
-                          <span className="text-lg">{getTypeIcon(proposal.proposal_type)}</span>
+                      <CardTitle className="flex items-center text-lg text-text-primary">
+                        <div className="p-2 bg-[#64f2d1] rounded-lg mr-3">
+                          <span className="text-lg text-[#111827]">{getTypeIcon(proposal.proposal_type)}</span>
                         </div>
                         {proposal.title}
                       </CardTitle>
-                      <CardDescription className="mt-3 text-base leading-relaxed text-gray-300">{proposal.description}</CardDescription>
+                      <CardDescription className="mt-3 text-base leading-relaxed text-text-secondary">{proposal.description}</CardDescription>
                     </div>
                     <Badge className={`${getStatusColor(proposal.status)} text-white font-semibold px-3 py-1`}>
                       {proposal.status.toUpperCase()}
@@ -340,40 +340,40 @@ export default function GovernancePage() {
                     {/* Voting Results */}
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-green-900/30 border border-green-500/30 p-3 rounded-lg">
+                        <div className="bg-success/10 border border-success/30 p-3 rounded-lg">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-green-300">For</span>
-                            <CheckCircle className="h-4 w-4 text-green-400" />
+                            <span className="text-sm font-medium text-success">For</span>
+                            <CheckCircle className="h-4 w-4 text-success" />
                           </div>
-                          <p className="text-xl font-bold text-green-400">{proposal.votes_for.toLocaleString()}</p>
-                          <p className="text-sm text-green-300">{forPercentage.toFixed(1)}%</p>
+                          <p className="text-xl font-bold text-success">{proposal.votes_for.toLocaleString()}</p>
+                          <p className="text-sm text-success">{forPercentage.toFixed(1)}%</p>
                         </div>
-                        <div className="bg-red-900/30 border border-red-500/30 p-3 rounded-lg">
+                        <div className="bg-error/10 border border-error/30 p-3 rounded-lg">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-red-300">Against</span>
-                            <XCircle className="h-4 w-4 text-red-400" />
+                            <span className="text-sm font-medium text-error">Against</span>
+                            <XCircle className="h-4 w-4 text-error" />
                           </div>
-                          <p className="text-xl font-bold text-red-400">{proposal.votes_against.toLocaleString()}</p>
-                          <p className="text-sm text-red-300">{againstPercentage.toFixed(1)}%</p>
+                          <p className="text-xl font-bold text-error">{proposal.votes_against.toLocaleString()}</p>
+                          <p className="text-sm text-error">{againstPercentage.toFixed(1)}%</p>
                         </div>
                       </div>
                       
                       <div className="space-y-2">
-                        <div className="flex justify-between text-sm font-medium text-gray-300">
+                        <div className="flex justify-between text-sm font-medium text-text-secondary">
                           <span>Voting Progress</span>
                           <span>{forPercentage.toFixed(1)}% For</span>
                         </div>
-                        <Progress value={forPercentage} className="h-3 bg-gray-700" />
+                        <Progress value={forPercentage} className="h-3 bg-surface-hover" />
                       </div>
                       
-                      <div className="flex justify-between items-center p-3 bg-gray-700 rounded-lg">
+                      <div className="flex justify-between items-center p-3 bg-surface-hover rounded-lg">
                         <div className="flex items-center space-x-2">
-                          <Users className="h-4 w-4 text-cyan-400" />
-                          <span className="text-sm font-medium text-gray-300">Quorum: {quorumProgress.toFixed(1)}%</span>
+                          <Users className="h-4 w-4 text-accent-tertiary" />
+                          <span className="text-sm font-medium text-text-secondary">Quorum: {quorumProgress.toFixed(1)}%</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Clock className="h-4 w-4 text-cyan-400" />
-                          <span className="text-sm text-gray-300">Ends: {new Date(proposal.voting_ends_at).toLocaleDateString()}</span>
+                          <Clock className="h-4 w-4 text-accent-tertiary" />
+                          <span className="text-sm text-text-secondary">Ends: {new Date(proposal.voting_ends_at).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </div>
@@ -383,14 +383,14 @@ export default function GovernancePage() {
                       <div className="grid grid-cols-3 gap-3">
                         <Button 
                           onClick={() => castVote(proposal.id, 'for')}
-                          className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg"
+                          variant="default"
                         >
                           <CheckCircle className="mr-2 h-4 w-4" />
                           Vote For
                         </Button>
                         <Button 
                           onClick={() => castVote(proposal.id, 'against')}
-                          className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg"
+                          variant="destructive"
                         >
                           <XCircle className="mr-2 h-4 w-4" />
                           Against
@@ -398,7 +398,6 @@ export default function GovernancePage() {
                         <Button 
                           onClick={() => castVote(proposal.id, 'abstain')}
                           variant="outline"
-                          className="border-2 border-gray-600 text-gray-300 hover:bg-gray-700 shadow-lg"
                         >
                           Abstain
                         </Button>
@@ -449,68 +448,69 @@ export default function GovernancePage() {
         </TabsContent>
 
         <TabsContent value="create">
-          <Card className="bg-gray-800">
-            <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-700">
-              <CardTitle className="flex items-center text-white">
-                <div className="p-2 bg-cyan-600 rounded-lg mr-3">
-                  <Plus className="h-5 w-5 text-white" />
+          <Card className="bg-surface">
+            <CardHeader className="bg-surface-hover">
+              <CardTitle className="flex items-center text-text-primary">
+                <div className="p-2 bg-[#64f2d1] rounded-lg mr-3">
+                  <Plus className="h-5 w-5 text-[#111827]" />
                 </div>
                 Create New Proposal
               </CardTitle>
-              <CardDescription className="text-gray-300">Submit a proposal for community voting</CardDescription>
+              <CardDescription className="text-text-secondary">Submit a proposal for community voting</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
               <div>
-                <Label htmlFor="proposal-type" className="text-white">Proposal Type</Label>
+                <Label htmlFor="proposal-type" className="text-text-primary">Proposal Type</Label>
                 <Select value={proposalType} onValueChange={setProposalType}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                  <SelectTrigger className="bg-surface-hover border-border text-text-primary">
                     <SelectValue placeholder="Select proposal type" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-700 border-gray-600">
-                    <SelectItem value="fee_change" className="text-white">💰 Fee Change</SelectItem>
-                    <SelectItem value="treasury" className="text-white">🏛️ Treasury Allocation</SelectItem>
-                    <SelectItem value="feature" className="text-white">⚡ New Feature</SelectItem>
-                    <SelectItem value="agent_curation" className="text-white">🤖 Agent Curation</SelectItem>
-                    <SelectItem value="other" className="text-white">📋 Other</SelectItem>
+                  <SelectContent className="bg-surface-hover border-border">
+                    <SelectItem value="fee_change" className="text-text-primary">💰 Fee Change</SelectItem>
+                    <SelectItem value="treasury" className="text-text-primary">🏛️ Treasury Allocation</SelectItem>
+                    <SelectItem value="feature" className="text-text-primary">⚡ New Feature</SelectItem>
+                    <SelectItem value="agent_curation" className="text-text-primary">🤖 Agent Curation</SelectItem>
+                    <SelectItem value="other" className="text-text-primary">📋 Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
               <div>
-                <Label htmlFor="proposal-title" className="text-white">Title</Label>
+                <Label htmlFor="proposal-title" className="text-text-primary">Title</Label>
                 <Input
                   id="proposal-title"
                   value={proposalTitle}
                   onChange={(e) => setProposalTitle(e.target.value)}
                   placeholder="Enter proposal title"
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  className="bg-surface-hover border-border text-text-primary placeholder-text-muted"
                 />
               </div>
               
               <div>
-                <Label htmlFor="proposal-description" className="text-white">Description</Label>
+                <Label htmlFor="proposal-description" className="text-text-primary">Description</Label>
                 <Textarea
                   id="proposal-description"
                   value={proposalDescription}
                   onChange={(e) => setProposalDescription(e.target.value)}
                   placeholder="Provide detailed description of your proposal..."
                   rows={6}
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                  className="bg-surface-hover border-border text-text-primary placeholder-text-muted"
                 />
               </div>
               
               {tokenBalance && tokenBalance.voting_power >= 100 ? (
                 <Button 
                   onClick={handleCreateProposal}
-                  className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 shadow-lg"
+                  variant="default"
+                  className="w-full"
                   disabled={!proposalTitle || !proposalDescription || !proposalType || creating}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   {creating ? 'Creating...' : 'Create Proposal'}
                 </Button>
               ) : (
-                <div className="text-center p-4 bg-yellow-900/30 border border-yellow-500/30 rounded-lg">
-                  <p className="text-yellow-300 text-sm">
+                <div className="text-center p-4 bg-warning/10 border border-warning/30 rounded-lg">
+                  <p className="text-warning text-sm">
                     You need at least 100 voting power to create proposals.
                     Current: {tokenBalance?.voting_power.toLocaleString() || 0}
                   </p>

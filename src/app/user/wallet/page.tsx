@@ -375,7 +375,7 @@ export default function WalletPage() {
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        className="bg-blue-600 h-2 rounded-full" 
+                        className="bg-[#64f2d1] h-2 rounded-full" 
                         style={{ width: `${Math.min(budgetUsage, 100)}%` }}
                       ></div>
                     </div>

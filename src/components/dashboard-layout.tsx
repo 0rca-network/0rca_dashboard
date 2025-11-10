@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Switch } from '@/components/ui/switch'
+
 import { GuidedTour } from '@/components/GuidedTour'
 import { 
   Home, 
@@ -12,8 +12,7 @@ import {
   DollarSign, 
   Settings, 
   LogOut, 
-  Moon, 
-  Sun,
+
   Play,
   History,
   Wallet,
@@ -41,7 +40,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [darkMode, setDarkMode] = useState(false)
+
   const [showTour, setShowTour] = useState(false)
   const [isNewUser, setIsNewUser] = useState(false)
   const router = useRouter()
@@ -115,10 +114,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     router.push('/auth/login')
   }
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode)
-    document.documentElement.classList.toggle('dark')
-  }
+
 
   const creatorNavItems = [
     { href: '/dashboard', icon: Home, label: 'Overview' },
@@ -153,88 +149,105 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-sidebar border-r border-sidebar-border min-h-screen p-4 flex flex-col">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold">Orca Network</h1>
-            <p className="text-sm text-muted-foreground capitalize">{profile.role} Dashboard</p>
+    <div className="relative min-h-screen bg-background overflow-hidden">
+      {/* Animated Background Shapes */}
+      <div className="absolute top-20 left-20 w-96 h-96 bg-[#64f2d1]/20 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-20 right-20 w-96 h-96 bg-[#22d3ee]/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+      
+      <div className="flex relative z-10">
+        {/* Glassmorphism Sidebar */}
+        <aside className="w-64 min-h-screen flex flex-col backdrop-blur-xl bg-surface/30 border-r border-white/10 shadow-2xl">
+          {/* Logo Section */}
+          <div className="h-28 flex items-center justify-center border-b border-white/10">
+            <img src="/orca_text-Photoroom.svg" alt="Orca Network" className="h-24" />
+          </div>
+          
+          <div className="px-4 py-3 border-b border-white/10">
+            <p className="text-xs text-gray-400 uppercase tracking-wider">{profile.role} Dashboard</p>
           </div>
 
-          <nav className="space-y-2 flex-1">
+          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
             {navItems.map((item) => (
               <Link key={item.href} href={item.href} prefetch={true}>
-                <Button
-                  variant={pathname === item.href ? "default" : "ghost"}
-                  className="w-full justify-start"
+                <button
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                    pathname === item.href
+                      ? "bg-[#64f2d1]/20 text-[#64f2d1] border-l-4 border-[#64f2d1] shadow-lg shadow-[#64f2d1]/20"
+                      : "text-gray-300 hover:bg-white/5 hover:text-white"
+                  }`}
                   data-tour={item.tourId}
                 >
-                  <item.icon className="mr-2 h-4 w-4" />
-                  {item.label}
-                </Button>
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </button>
               </Link>
             ))}
             
-            <div className="pt-4 border-t">
-              <div className="mb-2">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">DAO</span>
+            <div className="pt-4 mt-4 border-t border-white/10">
+              <div className="mb-3 px-2">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">DAO</span>
               </div>
               {daoNavItems.map((item) => (
                 <Link key={item.href} href={item.href} prefetch={true}>
-                  <Button
-                    variant={pathname === item.href ? "default" : "ghost"}
-                    className="w-full justify-start"
+                  <button
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                      pathname === item.href
+                        ? "bg-[#64f2d1]/20 text-[#64f2d1] border-l-4 border-[#64f2d1] shadow-lg shadow-[#64f2d1]/20"
+                        : "text-gray-300 hover:bg-white/5 hover:text-white"
+                    }`}
                     data-tour={item.tourId}
                   >
-                    <item.icon className="mr-2 h-4 w-4" />
-                    {item.label}
-                  </Button>
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.label}</span>
+                  </button>
                 </Link>
               ))}
             </div>
             
-            <div className="pt-4 border-t">
+            <div className="pt-4 mt-4 border-t border-white/10">
               {commonNavItems.map((item) => (
                 <Link key={item.href} href={item.href} prefetch={true}>
-                  <Button
-                    variant={pathname === item.href ? "default" : "ghost"}
-                    className="w-full justify-start"
+                  <button
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                      pathname === item.href
+                        ? "bg-[#64f2d1]/20 text-[#64f2d1] border-l-4 border-[#64f2d1] shadow-lg shadow-[#64f2d1]/20"
+                        : "text-gray-300 hover:bg-white/5 hover:text-white"
+                    }`}
                   >
-                    <item.icon className="mr-2 h-4 w-4" />
-                    {item.label}
-                  </Button>
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.label}</span>
+                  </button>
                 </Link>
               ))}
             </div>
           </nav>
 
-          <div className="mt-auto">
-            <Card className="p-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => router.push('/assistant')}
-                className="w-full mb-4"
-              >
-                ← Back to AI Assistant
-              </Button>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm">Balance</span>
-                <span className="font-bold">$0.00</span>
+          {/* User Profile Section */}
+          <div className="p-4 border-t border-white/10 mt-auto">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.push('/assistant')}
+              className="w-full mb-3 bg-white/5 border-white/10 hover:bg-white/10"
+            >
+              ← Back to AI Assistant
+            </Button>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 backdrop-blur-sm">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#64f2d1] to-[#22d3ee] flex items-center justify-center text-[#111827] font-bold">
+                {profile.role.charAt(0).toUpperCase()}
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Dark Mode</span>
-                <Switch checked={darkMode} onCheckedChange={toggleDarkMode} />
+              <div className="flex-1">
+                <p className="font-semibold text-white text-sm">Balance</p>
+                <p className="text-xs text-[#64f2d1] font-bold">$0.00</p>
               </div>
-            </Card>
+            </div>
           </div>
-        </div>
+        </aside>
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
           {/* Header with Logout */}
-          <div className="p-4 border-b bg-card">
+          <div className="p-4 border-b border-white/10 backdrop-blur-xl bg-surface/30">
             <div className="flex justify-end">
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
