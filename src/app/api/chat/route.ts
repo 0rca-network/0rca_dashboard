@@ -3,16 +3,20 @@ import Groq from 'groq-sdk'
 import { createClient } from '@supabase/supabase-js'
 
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY
+  apiKey: process.env.GROQ_API_KEY || ''
 })
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 )
 
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.GROQ_API_KEY) {
+      return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
+    }
+
     const { message, conversationHistory } = await request.json()
 
     if (!message) {
