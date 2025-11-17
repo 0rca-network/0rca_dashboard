@@ -36,6 +36,12 @@ A complete, production-ready, full-stack AI Agent Network Dashboard built with N
 - **Settings**: Profile management, preferences, security
 - **Dark Mode**: Toggle between light and dark themes
 
+#### MCP Integration
+- **Model Context Protocol Server**: TypeScript and Python implementations
+- **Agent Orchestration**: Execute agents via MCP tools
+- **External Client Support**: Compatible with Claude Desktop and other MCP clients
+- **API Integration**: REST API wrapper for dashboard integration
+
 ## Database Schema
 
 ### Tables
@@ -189,13 +195,36 @@ A complete, production-ready, full-stack AI Agent Network Dashboard built with N
      FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
    ```
 
-5. **Run the development server**
+5. **Set up MCP servers (optional)**
+   ```bash
+   # Build TypeScript MCP server
+   npm run build:mcp
+   
+   # Install Python MCP server
+   npm run install:mcp-python
+   ```
+
+6. **Run the development server**
    ```bash
    npm run dev
    ```
 
-6. **Open your browser**
+7. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
+
+### MCP Server Usage
+
+The dashboard includes Model Context Protocol (MCP) servers for external integration:
+
+```bash
+# Start TypeScript MCP server
+npm run dev:mcp
+
+# Start Python MCP server
+npm run start:mcp-python
+```
+
+See [MCP_INTEGRATION.md](MCP_INTEGRATION.md) for detailed setup and usage instructions.
 
 ## Deployment
 

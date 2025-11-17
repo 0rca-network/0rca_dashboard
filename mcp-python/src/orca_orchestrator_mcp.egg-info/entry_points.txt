@@ -1,0 +1,2 @@
+[console_scripts]
+orca-mcp-server = orca_server.server:main

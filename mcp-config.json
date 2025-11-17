@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "orca-orchestrator-ts": {
+      "command": "node",
+      "args": ["dist/mcp/index.js"],
+      "env": {
+        "NEXT_PUBLIC_SUPABASE_URL": "your_supabase_url",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY": "your_supabase_key"
+      }
+    },
+    "orca-orchestrator-python": {
+      "command": "python",
+      "args": ["-m", "orca_server.server"],
+      "cwd": "./mcp-python",
+      "env": {
+        "NEXT_PUBLIC_SUPABASE_URL": "your_supabase_url",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY": "your_supabase_key"
+      }
+    }
+  }
+}

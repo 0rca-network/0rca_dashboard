@@ -21,7 +21,10 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "build:mcp": "tsc --project src/mcp/tsconfig.json",
-    "start:mcp": "node dist/mcp/index.js"
+    "start:mcp": "node dist/mcp/index.js",
+    "dev:mcp": "npm run build:mcp && npm run start:mcp",
+    "install:mcp-python": "cd mcp-python && pip install -e .",
+    "start:mcp-python": "cd mcp-python && python -m orca_server.server"
   },
   "dependencies": {
     "@ai-sdk/react": "^2.0.90",
@@ -62,6 +65,7 @@
     "recharts": "^2.8.0",
     "tailwind-merge": "^2.1.0",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^9.0.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -73,6 +77,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/supertest": "^6.0.2",
+    "@types/uuid": "^9.0.7",
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.0.4",
