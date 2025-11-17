@@ -50,4 +50,19 @@
     @apply bg-background text-text-primary;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+
+  /* Custom select dropdown styling */
+  select option {
+    background-color: #1f2937;
+    color: white;
+  }
+  
+  select option:hover {
+    background: linear-gradient(90deg, #64f2d1 0%, #64f2d1 100%) !important;
+    color: #111827 !important;
+  }
+  
+  select option:checked {
+    background-color: #374151;
+  }
 }

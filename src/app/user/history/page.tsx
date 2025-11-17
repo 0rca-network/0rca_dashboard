@@ -200,10 +200,10 @@ export default function HistoryPage() {
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="px-3 py-2 rounded-md bg-[#64f2d1] text-[#111827] font-semibold border-none"
                 >
-                  <option value="all" className="bg-surface text-text-primary">All Status</option>
-                  <option value="completed" className="bg-surface text-text-primary">Completed</option>
-                  <option value="failed" className="bg-surface text-text-primary">Failed</option>
-                  <option value="running" className="bg-surface text-text-primary">Running</option>
+                  <option value="all">All Status</option>
+                  <option value="completed">Completed</option>
+                  <option value="failed">Failed</option>
+                  <option value="running">Running</option>
                 </select>
               </div>
 
