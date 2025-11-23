@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   keywords: ['AI agents', 'marketplace', 'orchestration', 'DAO', 'blockchain', 'Next.js', 'TypeScript', 'Supabase', 'agent network', 'AI automation'],
   authors: [{ name: 'Orca Network' }],
   creator: 'Orca Network',
+  icons: {
+    icon: '/0rca-Photoroom.svg',
+    shortcut: '/0rca-Photoroom.svg',
+    apple: '/0rca-Photoroom.svg',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
