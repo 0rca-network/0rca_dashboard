@@ -129,6 +129,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: '/user/history', icon: History, label: 'History', tourId: 'history' },
     { href: '/user/agents', icon: Search, label: 'Discover', tourId: 'discovery' },
     { href: '/user/wallet', icon: Wallet, label: 'Wallet', tourId: 'wallet' },
+    { href: 'https://pod.0rca.network', icon: Bot, label: 'Pod', external: true },
   ]
 
   const daoNavItems = [
@@ -168,19 +169,30 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
             {navItems.map((item) => (
-              <Link key={item.href} href={item.href} prefetch={true}>
-                <button
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
-                    pathname === item.href
-                      ? "bg-[#64f2d1]/20 text-[#64f2d1] border-l-4 border-[#64f2d1] shadow-lg shadow-[#64f2d1]/20"
-                      : "text-gray-300 hover:bg-white/5 hover:text-white"
-                  }`}
-                  data-tour={item.tourId}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.label}</span>
-                </button>
-              </Link>
+              item.external ? (
+                <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer">
+                  <button
+                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-gray-300 hover:bg-white/5 hover:text-white"
+                  >
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.label}</span>
+                  </button>
+                </a>
+              ) : (
+                <Link key={item.href} href={item.href} prefetch={true}>
+                  <button
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                      pathname === item.href
+                        ? "bg-[#64f2d1]/20 text-[#64f2d1] border-l-4 border-[#64f2d1] shadow-lg shadow-[#64f2d1]/20"
+                        : "text-gray-300 hover:bg-white/5 hover:text-white"
+                    }`}
+                    data-tour={item.tourId}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.label}</span>
+                  </button>
+                </Link>
+              )
             ))}
             
             <div className="pt-4 mt-4 border-t border-white/10">
