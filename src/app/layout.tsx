@@ -17,9 +17,9 @@ export const metadata: Metadata = {
   authors: [{ name: 'Orca Network' }],
   creator: 'Orca Network',
   icons: {
-    icon: '/0rca-Photoroom.svg',
-    shortcut: '/0rca-Photoroom.svg',
-    apple: '/0rca-Photoroom.svg',
+    icon: '/0rca_white.png',
+    shortcut: '/0rca_white.png',
+    apple: '/0rca_white.png',
   },
   openGraph: {
     type: 'website',
@@ -61,6 +61,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <link rel="icon" href="/0rca_white.png" type="image/png" sizes="64x64" />
+      </head>
       <body className={inter.className}>
         <QueryProvider>
           {children}
