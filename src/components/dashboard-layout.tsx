@@ -116,14 +116,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
 
 
-  const creatorNavItems = [
+  const creatorNavItems: Array<{href: string; icon: any; label: string; tourId?: string; external?: boolean}> = [
     { href: '/dashboard', icon: Home, label: 'Overview' },
     { href: '/creator/agents', icon: Bot, label: 'My Agents', tourId: 'my-agents' },
     { href: '/creator/earnings', icon: DollarSign, label: 'Earnings', tourId: 'earnings' },
     { href: '/creator/analytics', icon: BarChart3, label: 'Analytics', tourId: 'analytics' },
   ]
 
-  const userNavItems = [
+  const userNavItems: Array<{href: string; icon: any; label: string; tourId?: string; external?: boolean}> = [
     { href: '/dashboard', icon: Home, label: 'Overview' },
     { href: '/user/orchestrator', icon: Play, label: 'Orchestrator', tourId: 'orchestrator' },
     { href: '/user/history', icon: History, label: 'History', tourId: 'history' },
