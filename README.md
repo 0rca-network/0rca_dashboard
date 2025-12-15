@@ -1,4 +1,4 @@
-# Orca Network Dashboard
+# 0rca Dashboard Cronos
 
 A complete, production-ready, full-stack AI Agent Network Dashboard built with Next.js 14, TypeScript, Tailwind CSS, and Supabase.
 
@@ -63,7 +63,7 @@ A complete, production-ready, full-stack AI Agent Network Dashboard built with N
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd orca-network-dashboard
+   cd 0rca-dashboard-cronos
    ```
 
 2. **Install dependencies**

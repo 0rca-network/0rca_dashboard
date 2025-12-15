@@ -14,11 +14,11 @@ import {
   gtxn,
   Application,
   bytes
-} from "@algorandfoundation/algorand-typescript";
-import { arc4 } from '@algorandfoundation/algorand-typescript';
+} from "@cronosfoundation/cronos-typescript";
+import { arc4 } from '@cronosfoundation/cronos-typescript';
 
 // Address and ARC4 types live under the arc4 submodule
-import { Address } from "@algorandfoundation/algorand-typescript/arc4";
+import { Address } from "@cronosfoundation/cronos-typescript/arc4";
 
 // Task struct: use arc4 types for all fields (including executor -> Address)
 class Task extends arc4.Struct<{

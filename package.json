@@ -1,5 +1,5 @@
 {
-  "name": "orca-network-dashboard",
+  "name": "0rca-dashboard-cronos",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -16,7 +16,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "worker:rewards": "nodemon --exec ts-node --esm src/workers/rewards-worker.ts",
-    "compile:algorand": "tsc proposal.algo.ts DAO.algo.ts --outDir dist/algorand --target es2020 --moduleResolution node",
+    "compile:cronos": "tsc proposal.algo.ts DAO.algo.ts --outDir dist/cronos --target es2020 --moduleResolution node",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^2.0.90",
-    "@algorandfoundation/algorand-typescript": "^1.0.0",
+
     "@modelcontextprotocol/sdk": "^1.21.1",
     "@prisma/client": "^5.7.1",
     "@radix-ui/react-avatar": "^1.0.4",
@@ -48,7 +48,7 @@
     "@supabase/supabase-js": "^2.38.4",
     "@tanstack/react-query": "^5.90.3",
     "ai": "^5.0.90",
-    "algosdk": "^2.7.0",
+
     "axios": "^1.13.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.0.0",
